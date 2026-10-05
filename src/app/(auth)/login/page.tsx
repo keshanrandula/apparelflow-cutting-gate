@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useAuth } from '@/client/hooks/useAuth';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { ThemeToggle } from '@/client/components/ui/ThemeToggle';
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -48,23 +49,27 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center px-4 py-12 bg-slate-100">
+    <div className="min-h-screen flex flex-col justify-center items-center px-4 py-12 bg-slate-100 dark:bg-slate-950 transition-colors">
+      <div className="fixed top-4 right-4 z-50">
+        <ThemeToggle />
+      </div>
+
       <div className="w-full max-w-md space-y-6">
         {/* Brand Header */}
         <div className="text-center space-y-2">
           <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-600 text-white font-black text-xl shadow-md">
             AF
           </div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">
+          <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
             ApparelFlow ERP
           </h1>
-          <p className="text-xs uppercase tracking-widest font-bold text-slate-600">
+          <p className="text-xs uppercase tracking-widest font-bold text-slate-600 dark:text-slate-400">
             Cutting Floor & Gatekeeper Terminal
           </p>
         </div>
 
         {/* Login Card */}
-        <div className="bg-white p-8 rounded-2xl shadow-xl border border-slate-300">
+        <div className="bg-white dark:bg-slate-900 p-8 rounded-2xl shadow-xl border border-slate-300 dark:border-slate-800 transition-colors">
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
               <div
