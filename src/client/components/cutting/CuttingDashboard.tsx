@@ -1,330 +1,330 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useOrders } from '../../hooks/useOrders';
 import { api } from '../../api/client';
-import { ExpectedComponentCalculation } from '../../types';
-import { Card } from '../ui/Card';
-import { Input } from '../ui/Input';
-import { Select } from '../ui/Select';
-import { Button } from '../ui/Button';
-import { StatusBadge } from '../ui/Badges';
-import { Modal } from '../ui/Card';
+import { CuttingOrder, OrderStatus, Recipe } from '../../types';
+import { Card, Modal } from '@/components/ui';
+import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
+import { Button } from '@/components/ui/Button';
+import { StatusBadge } from '@/components/ui/Badges';
+import { EmptyState } from '@/components/ui/Feedback';
+import { useToast } from '@/components/ui/Toast';
 
 export const CuttingDashboard: React.FC = () => {
   const { orders, recipes, loading, error, createOrder, resubmitOrder, refreshOrders } =
     useOrders();
+  const { showToast } = useToast();
 
-  // New Order Form state
+  // Status Filter state
+  const [statusFilter, setStatusFilter] = useState<string>('ALL');
+
+  // Create Order Modal state
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedRecipeId, setSelectedRecipeId] = useState<string>('');
-  const [targetQty, setTargetQty] = useState<number | ''>('');
+  const [targetQtyStr, setTargetQtyStr] = useState<string>('');
   const [fabricRollId, setFabricRollId] = useState<string>('');
-  const [actualFabricYds, setActualFabricYds] = useState<number | ''>('');
-  const [formError, setFormError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState<boolean>(false);
+  const [actualFabricYdsStr, setActualFabricYdsStr] = useState<string>('');
+  const [submitting, setSubmitting] = useState(false);
 
-  // Live BOM Preview state
-  const [preview, setPreview] = useState<ExpectedComponentCalculation | null>(null);
-  const [previewLoading, setPreviewLoading] = useState<boolean>(false);
+  // Field validation errors
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [serverError, setServerError] = useState<string | null>(null);
 
   // Re-cut Resubmit Modal state
-  const [resubmitOrderId, setResubmitOrderId] = useState<string | null>(null);
-  const [updatedFabricYds, setUpdatedFabricYds] = useState<number | ''>('');
-  const [resubmitting, setResubmitting] = useState<boolean>(false);
+  const [resubmitOrderTarget, setResubmitOrderTarget] = useState<CuttingOrder | null>(null);
+  const [resubmitFabricStr, setResubmitFabricStr] = useState<string>('');
+  const [resubmitError, setResubmitError] = useState<string | null>(null);
+  const [resubmitting, setResubmitting] = useState(false);
 
-  // Initialize selected recipe when recipes load
+  // Default select first recipe when list loads
   useEffect(() => {
     if (recipes.length > 0 && !selectedRecipeId) {
       setSelectedRecipeId(recipes[0].id);
     }
   }, [recipes, selectedRecipeId]);
 
-  // Fetch live expected BOM preview whenever recipe or targetQty changes
-  useEffect(() => {
-    if (selectedRecipeId && typeof targetQty === 'number' && targetQty > 0) {
-      setPreviewLoading(true);
-      api.recipes
-        .calculateExpected(selectedRecipeId, targetQty)
-        .then((data) => setPreview(data))
-        .catch(() => setPreview(null))
-        .finally(() => setPreviewLoading(false));
-    } else {
-      setPreview(null);
-    }
-  }, [selectedRecipeId, targetQty]);
+  const selectedRecipe = useMemo<Recipe | undefined>(() => {
+    return recipes.find((r) => r.id === selectedRecipeId);
+  }, [recipes, selectedRecipeId]);
 
-  const handleCreateOrder = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFormError(null);
+  // Client-side validation mirroring server Zod schema
+  const validateCreateForm = () => {
+    const errs: Record<string, string> = {};
 
     if (!selectedRecipeId) {
-      setFormError('Please select a garment style recipe.');
-      return;
+      errs.recipeId = 'Please select a garment recipe style';
     }
-    if (!targetQty || targetQty <= 0 || !Number.isInteger(Number(targetQty))) {
-      setFormError('Target quantity must be a positive whole integer.');
-      return;
+
+    // Target Qty validation (Strict integer, 1..100,000, rejects decimals/negatives/non-numeric)
+    const trimmedQty = targetQtyStr.trim();
+    if (!trimmedQty) {
+      errs.targetQty = 'Target quantity is required';
+    } else if (!/^\d+$/.test(trimmedQty)) {
+      errs.targetQty = 'Target quantity must be a whole positive integer (no decimals or symbols)';
+    } else {
+      const qtyNum = parseInt(trimmedQty, 10);
+      if (qtyNum < 1) {
+        errs.targetQty = 'Target quantity must be at least 1 unit';
+      } else if (qtyNum > 100000) {
+        errs.targetQty = 'Target quantity cannot exceed 100,000 units';
+      }
     }
-    if (!fabricRollId.trim()) {
-      setFormError('Please enter a valid Fabric Roll ID.');
-      return;
+
+    // Fabric Roll ID validation
+    const trimmedRoll = fabricRollId.trim();
+    if (!trimmedRoll) {
+      errs.fabricRollId = 'Fabric Roll ID is required';
+    } else if (trimmedRoll.length > 50) {
+      errs.fabricRollId = 'Fabric Roll ID cannot exceed 50 characters';
     }
-    if (!actualFabricYds || actualFabricYds <= 0) {
-      setFormError('Please enter valid actual fabric yards consumed.');
+
+    // Actual Fabric Yards validation (Positive number, max 2 decimals)
+    const trimmedYards = actualFabricYdsStr.trim();
+    if (!trimmedYards) {
+      errs.actualFabricYds = 'Actual fabric consumed is required';
+    } else if (!/^\d+(\.\d{1,2})?$/.test(trimmedYards)) {
+      errs.actualFabricYds = 'Enter a valid positive number with at most 2 decimal places (e.g. 182.50)';
+    } else {
+      const yardsNum = parseFloat(trimmedYards);
+      if (yardsNum <= 0) {
+        errs.actualFabricYds = 'Actual fabric must be greater than 0';
+      }
+    }
+
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
+  const handleCreateOrderSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setServerError(null);
+
+    if (!validateCreateForm()) {
       return;
     }
 
     try {
       setSubmitting(true);
-      await createOrder({
+      const created = await createOrder({
         recipeId: selectedRecipeId,
-        targetQty: Number(targetQty),
+        targetQty: parseInt(targetQtyStr.trim(), 10),
         fabricRollId: fabricRollId.trim(),
-        actualFabricYds: Number(actualFabricYds),
+        actualFabricYds: parseFloat(actualFabricYdsStr.trim()),
       });
 
-      // Reset form
-      setTargetQty('');
+      showToast(`Cut batch ${created.orderNo} created and submitted for verification!`, 'success');
+      setIsCreateModalOpen(false);
+
+      // Reset form fields
+      setTargetQtyStr('');
       setFabricRollId('');
-      setActualFabricYds('');
-      setPreview(null);
+      setActualFabricYdsStr('');
+      setErrors({});
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to create order.';
-      setFormError(msg);
+      const msg = err instanceof Error ? err.message : 'Failed to create cutting order';
+      setServerError(msg);
+      showToast(msg, 'error');
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleResubmit = async () => {
-    if (!resubmitOrderId) return;
+  const handleResubmitConfirm = async () => {
+    if (!resubmitOrderTarget) return;
+
+    let parsedYards: number | undefined = undefined;
+    if (resubmitFabricStr.trim()) {
+      if (!/^\d+(\.\d{1,2})?$/.test(resubmitFabricStr.trim())) {
+        setResubmitError('Fabric yards must be a positive number with max 2 decimals');
+        return;
+      }
+      parsedYards = parseFloat(resubmitFabricStr.trim());
+      if (parsedYards <= 0) {
+        setResubmitError('Fabric yards must be greater than 0');
+        return;
+      }
+    }
+
     try {
       setResubmitting(true);
-      const yards = typeof updatedFabricYds === 'number' ? updatedFabricYds : undefined;
-      await resubmitOrder(resubmitOrderId, yards);
-      setResubmitOrderId(null);
-      setUpdatedFabricYds('');
+      setResubmitError(null);
+      await resubmitOrder(resubmitOrderTarget.id, parsedYards);
+      showToast(`Order ${resubmitOrderTarget.orderNo} resubmitted for verification!`, 'success');
+      setResubmitOrderTarget(null);
+      setResubmitFabricStr('');
       refreshOrders();
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : 'Failed to resubmit order');
+      const msg = err instanceof Error ? err.message : 'Failed to resubmit order';
+      setResubmitError(msg);
+      showToast(msg, 'error');
     } finally {
       setResubmitting(false);
     }
   };
 
-  const selectedRecipe = recipes.find((r) => r.id === selectedRecipeId);
+  // Dynamic Live BOM Calculations
+  const liveQty = useMemo(() => {
+    const trimmed = targetQtyStr.trim();
+    if (/^\d+$/.test(trimmed)) {
+      const val = parseInt(trimmed, 10);
+      return val > 0 && val <= 100000 ? val : 0;
+    }
+    return 0;
+  }, [targetQtyStr]);
+
+  const liveExpectedFabric = useMemo(() => {
+    if (selectedRecipe && liveQty > 0) {
+      return Number((selectedRecipe.stdFabricYards * liveQty).toFixed(2));
+    }
+    return 0;
+  }, [selectedRecipe, liveQty]);
+
+  // Filtered orders list
+  const filteredOrders = useMemo(() => {
+    if (statusFilter === 'ALL') return orders;
+    return orders.filter((o) => o.status === statusFilter);
+  }, [orders, statusFilter]);
 
   return (
     <div className="space-y-8">
-      {/* Dashboard Header */}
+      {/* Header & Primary Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black tracking-tight text-slate-900">
-            Cutting Floor Workspace
+            Cutting Supervisor Workspace
           </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Log fabric cut batches, compute real-time bill-of-materials, and submit to Gatekeeper verification.
+          <p className="text-xs text-slate-600 mt-1 font-medium">
+            Log fabric cut batches, compute real-time bill-of-materials, and track gatekeeper verification progress.
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => refreshOrders()} loading={loading}>
-          ↻ Refresh Orders
-        </Button>
+
+        <div className="flex items-center gap-3">
+          <Button variant="outline" size="sm" onClick={() => refreshOrders()} loading={loading}>
+            ↻ Refresh Orders
+          </Button>
+          <Button
+            variant="primary"
+            size="md"
+            onClick={() => {
+              setIsCreateModalOpen(true);
+              setServerError(null);
+            }}
+          >
+            + Create Cutting Order
+          </Button>
+        </div>
       </div>
 
       {error && (
-        <div className="rounded-lg bg-rose-50 border border-rose-200 p-4 text-sm text-rose-800 font-medium">
-          {error}
+        <div role="alert" className="rounded-xl bg-rose-50 border border-rose-300 p-4 text-xs font-bold text-rose-900">
+          ⚠️ {error}
         </div>
       )}
 
-      {/* Main Grid: Order Entry Form + Live BOM Preview */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Left Form: Cut Batch Entry */}
-        <div className="lg:col-span-6">
-          <Card
-            title="Log New Cut Batch"
-            subtitle="Input order parameters to generate work order & verification items"
-          >
-            <form onSubmit={handleCreateOrder} className="space-y-4">
-              {formError && (
-                <div className="rounded-lg bg-rose-50 border border-rose-200 p-3 text-xs text-rose-800 font-medium">
-                  {formError}
-                </div>
-              )}
-
-              <Select
-                label="Garment Recipe / Style"
-                value={selectedRecipeId}
-                onChange={(e) => setSelectedRecipeId(e.target.value)}
-                required
-              >
-                {recipes.map((recipe) => (
-                  <option key={recipe.id} value={recipe.id}>
-                    {recipe.name} ({recipe.recipeCode}) - {recipe.stdFabricYards} yds/unit (Cap: {recipe.wastageCap}%)
-                  </option>
-                ))}
-              </Select>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Input
-                  label="Target Quantity (Units)"
-                  type="number"
-                  min="1"
-                  step="1"
-                  placeholder="e.g. 100"
-                  value={targetQty}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setTargetQty(v === '' ? '' : parseInt(v, 10));
-                  }}
-                  required
-                  helperText="Whole integer garment count"
-                />
-
-                <Input
-                  label="Fabric Roll ID"
-                  placeholder="e.g. ROLL-2026-901"
-                  maxLength={50}
-                  value={fabricRollId}
-                  onChange={(e) => setFabricRollId(e.target.value)}
-                  required
-                />
-              </div>
-
-              <Input
-                label="Actual Fabric Consumed (Yards)"
-                type="number"
-                min="0.01"
-                step="0.01"
-                placeholder="e.g. 182.50"
-                value={actualFabricYds}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setActualFabricYds(v === '' ? '' : parseFloat(v));
-                }}
-                required
-                helperText="Total physical yards cut from roll"
-              />
-
-              <div className="pt-2">
-                <Button type="submit" variant="primary" className="w-full" loading={submitting}>
-                  Generate & Submit for Verification
-                </Button>
-              </div>
-            </form>
-          </Card>
-        </div>
-
-        {/* Right Panel: Live Bill-of-Materials & Tolerance Preview */}
-        <div className="lg:col-span-6">
-          <Card
-            title="Live Bill-of-Materials (BOM) Preview"
-            subtitle="Server-calculated component counts and fabric requirement"
-          >
-            {previewLoading ? (
-              <div className="py-12 text-center text-xs text-slate-400">
-                Calculating expected components...
-              </div>
-            ) : preview ? (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-3 p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs">
-                  <div>
-                    <span className="text-slate-500 block">Expected Standard Fabric:</span>
-                    <span className="font-bold text-slate-900 text-sm">
-                      {preview.expectedFabricYds} yds
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 block">Wastage Cap Tolerance:</span>
-                    <span className="font-bold text-slate-900 text-sm">
-                      {preview.recipe.wastageCap}%
-                    </span>
-                  </div>
-                </div>
-
-                <div>
-                  <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                    Expected Component Quantities:
-                  </h4>
-                  <div className="rounded-lg border border-slate-200 divide-y divide-slate-100 overflow-hidden">
-                    {preview.components.map((comp) => (
-                      <div
-                        key={comp.componentId}
-                        className="flex items-center justify-between px-3 py-2 text-xs bg-white hover:bg-slate-50 transition"
-                      >
-                        <span className="font-medium text-slate-800">{comp.componentName}</span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-slate-400 text-[11px]">
-                            {comp.piecesPerGarment} pc/unit
-                          </span>
-                          <span className="font-bold px-2 py-0.5 rounded-sm bg-indigo-50 text-indigo-700 border border-indigo-200">
-                            {comp.expectedQty} pcs
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="py-16 text-center text-xs text-slate-400">
-                Enter a target quantity above to calculate required pieces & standard fabric yardage.
-              </div>
-            )}
-          </Card>
-        </div>
-      </div>
-
-      {/* Orders List Section */}
+      {/* Orders Table Card with Status Filters */}
       <Card
-        title="Supervisor Orders History"
-        subtitle="Tracking batches across verification, rejection, and sewing floor"
+        title="Active Cut Batches"
+        subtitle="Manage and track order progress across the factory floor"
+        action={
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-slate-600">Filter:</span>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="text-xs font-bold py-1.5 px-3 rounded-lg border border-[#6b7280] bg-white text-[#111827]"
+              style={{ color: '#111827', backgroundColor: '#ffffff' }}
+            >
+              <option value="ALL">All Batches ({orders.length})</option>
+              <option value="PENDING_VERIFICATION">Pending Verification</option>
+              <option value="VERIFIED">Verified</option>
+              <option value="REJECTED">Rejected (Needs Re-cut)</option>
+              <option value="SEWING_STARTED">Sewing Started</option>
+              <option value="IN_PROGRESS">In Progress</option>
+            </select>
+          </div>
+        }
       >
         {loading && orders.length === 0 ? (
-          <div className="py-12 text-center text-xs text-slate-400">Loading orders...</div>
-        ) : orders.length === 0 ? (
-          <div className="py-12 text-center text-xs text-slate-400">
-            No cutting orders created yet. Use the form above to log your first cut batch.
+          /* Loading Skeletons */
+          <div className="space-y-3 py-4 animate-pulse">
+            <div className="h-10 bg-slate-200 rounded-lg" />
+            <div className="h-12 bg-slate-100 rounded-lg" />
+            <div className="h-12 bg-slate-100 rounded-lg" />
+            <div className="h-12 bg-slate-100 rounded-lg" />
           </div>
+        ) : filteredOrders.length === 0 ? (
+          <EmptyState
+            title="No Cutting Orders Found"
+            description={
+              statusFilter === 'ALL'
+                ? "You haven't created any cutting orders yet. Click 'Create Cutting Order' above to log your first batch."
+                : `No orders currently match status: ${statusFilter}.`
+            }
+            icon="✂️"
+            action={
+              statusFilter === 'ALL' ? (
+                <Button variant="primary" size="sm" onClick={() => setIsCreateModalOpen(true)}>
+                  + Log First Cut Batch
+                </Button>
+              ) : (
+                <Button variant="outline" size="sm" onClick={() => setStatusFilter('ALL')}>
+                  Show All Orders
+                </Button>
+              )
+            }
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-600 uppercase font-bold text-[10px] tracking-wider border-b border-slate-200">
+              <thead className="bg-slate-50 text-slate-700 uppercase font-extrabold text-[10px] tracking-wider border-b border-slate-200">
                 <tr>
-                  <th className="py-3 px-4">Order No</th>
-                  <th className="py-3 px-4">Style / Recipe</th>
-                  <th className="py-3 px-4 text-center">Target Qty</th>
-                  <th className="py-3 px-4 text-center">Fabric (Yds)</th>
-                  <th className="py-3 px-4 text-center">Status</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
+                  <th className="py-3.5 px-4">Order No</th>
+                  <th className="py-3.5 px-4">Style / Recipe</th>
+                  <th className="py-3.5 px-4 text-center">Target Qty</th>
+                  <th className="py-3.5 px-4 text-center">Fabric (Yds)</th>
+                  <th className="py-3.5 px-4 text-center">Status</th>
+                  <th className="py-3.5 px-4 text-center">Created Date</th>
+                  <th className="py-3.5 px-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 font-medium">
-                {orders.map((order) => (
+              <tbody className="divide-y divide-slate-200 font-medium">
+                {filteredOrders.map((order) => (
                   <tr key={order.id} className="hover:bg-slate-50/80 transition">
-                    <td className="py-3.5 px-4 font-bold text-indigo-600">
+                    <td className="py-3.5 px-4 font-bold text-indigo-700">
                       <Link href={`/orders/${order.id}`} className="hover:underline">
                         {order.orderNo}
                       </Link>
-                      <span className="block text-[10px] text-slate-400 font-normal mt-0.5">
-                        {new Date(order.createdAt).toLocaleDateString()}
-                      </span>
                     </td>
-                    <td className="py-3.5 px-4 text-slate-900 font-semibold">
+                    <td className="py-3.5 px-4 text-slate-900 font-bold">
                       {order.recipe?.name}
                       <span className="block text-[10px] text-slate-500 font-normal">
                         Roll: {order.fabricRollId}
                       </span>
                     </td>
-                    <td className="py-3.5 px-4 text-center text-slate-800 font-bold">
+                    <td className="py-3.5 px-4 text-center font-extrabold text-slate-900">
                       {order.targetQty}
                     </td>
-                    <td className="py-3.5 px-4 text-center text-slate-700">
+                    <td className="py-3.5 px-4 text-center font-semibold text-slate-800">
                       {order.actualFabricYds}
                     </td>
                     <td className="py-3.5 px-4 text-center">
-                      <StatusBadge status={order.status} size="sm" />
+                      <div className="inline-flex flex-col items-center gap-1">
+                        <StatusBadge status={order.status} size="sm" />
+                        {order.status === 'REJECTED' && order.verificationLogs?.[0]?.rejectionNote && (
+                          <span
+                            className="text-[10px] text-rose-800 bg-rose-100 px-2 py-0.5 rounded-sm max-w-[200px] truncate"
+                            title={order.verificationLogs[0].rejectionNote}
+                          >
+                            Reason: {order.verificationLogs[0].rejectionNote}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="py-3.5 px-4 text-center text-slate-600 text-[11px]">
+                      {new Date(order.createdAt).toLocaleDateString()}
                     </td>
                     <td className="py-3.5 px-4 text-right space-x-2">
                       {order.status === 'REJECTED' && (
@@ -332,8 +332,9 @@ export const CuttingDashboard: React.FC = () => {
                           variant="danger"
                           size="sm"
                           onClick={() => {
-                            setResubmitOrderId(order.id);
-                            setUpdatedFabricYds(order.actualFabricYds);
+                            setResubmitOrderTarget(order);
+                            setResubmitFabricStr(order.actualFabricYds.toString());
+                            setResubmitError(null);
                           }}
                         >
                           Re-cut & Resubmit
@@ -341,7 +342,7 @@ export const CuttingDashboard: React.FC = () => {
                       )}
                       <Link
                         href={`/orders/${order.id}`}
-                        className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition"
+                        className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-300 transition shadow-xs"
                       >
                         View Details
                       </Link>
@@ -354,36 +355,199 @@ export const CuttingDashboard: React.FC = () => {
         )}
       </Card>
 
-      {/* Resubmit Modal */}
+      {/* CREATE ORDER MODAL */}
       <Modal
-        isOpen={Boolean(resubmitOrderId)}
-        onClose={() => setResubmitOrderId(null)}
-        title="Re-cut & Resubmit Order for Verification"
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        title="Create New Cutting Order"
+      >
+        <form onSubmit={handleCreateOrderSubmit} className="space-y-4">
+          {serverError && (
+            <div role="alert" className="p-3 rounded-lg bg-rose-50 border border-[#b91c1c] text-xs font-bold text-[#b91c1c]">
+              ⚠️ {serverError}
+            </div>
+          )}
+
+          {/* Recipe Select */}
+          <Select
+            label="Garment Recipe / Style"
+            value={selectedRecipeId}
+            onChange={(e) => {
+              setSelectedRecipeId(e.target.value);
+              if (errors.recipeId) setErrors((prev) => ({ ...prev, recipeId: '' }));
+            }}
+            error={errors.recipeId}
+            required
+          >
+            {recipes.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.name} ({r.recipeCode}) - {r.stdFabricYards} yds/unit (Wastage Cap: {r.wastageCap}%)
+              </option>
+            ))}
+          </Select>
+
+          {/* Target Quantity Input with strict manual validation */}
+          <Input
+            label="Target Quantity (Whole Integer Units)"
+            type="text"
+            inputMode="numeric"
+            placeholder="e.g. 100"
+            value={targetQtyStr}
+            onChange={(e) => {
+              setTargetQtyStr(e.target.value);
+              if (errors.targetQty) setErrors((prev) => ({ ...prev, targetQty: '' }));
+            }}
+            error={errors.targetQty}
+            helperText="Whole integer between 1 and 100,000"
+            required
+          />
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Fabric Roll ID */}
+            <Input
+              label="Fabric Roll ID"
+              placeholder="e.g. ROLL-2026-901"
+              maxLength={50}
+              value={fabricRollId}
+              onChange={(e) => {
+                setFabricRollId(e.target.value);
+                if (errors.fabricRollId) setErrors((prev) => ({ ...prev, fabricRollId: '' }));
+              }}
+              error={errors.fabricRollId}
+              required
+            />
+
+            {/* Actual Fabric Yards */}
+            <Input
+              label="Actual Fabric Used (Yds)"
+              type="text"
+              inputMode="decimal"
+              placeholder="e.g. 182.50"
+              value={actualFabricYdsStr}
+              onChange={(e) => {
+                setActualFabricYdsStr(e.target.value);
+                if (errors.actualFabricYds) setErrors((prev) => ({ ...prev, actualFabricYds: '' }));
+              }}
+              error={errors.actualFabricYds}
+              helperText="Positive number with max 2 decimals"
+              required
+            />
+          </div>
+
+          {/* LIVE BILL-OF-MATERIALS PREVIEW PANEL */}
+          <div className="mt-4 p-4 rounded-xl border border-slate-300 bg-slate-50 space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+              <span className="text-xs font-black uppercase tracking-wider text-slate-800">
+                ⚡ Live Bill-of-Materials (BOM) Preview
+              </span>
+              {liveQty > 0 && (
+                <span className="text-xs font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-200">
+                  Target: {liveQty} Units
+                </span>
+              )}
+            </div>
+
+            {selectedRecipe && liveQty > 0 ? (
+              <div className="space-y-3 text-xs">
+                <div className="grid grid-cols-2 gap-2 p-2.5 rounded-lg bg-white border border-slate-200">
+                  <div>
+                    <span className="text-slate-500 block text-[11px]">Expected Standard Fabric:</span>
+                    <span className="font-extrabold text-slate-900">{liveExpectedFabric} yds</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block text-[11px]">Style Wastage Cap:</span>
+                    <span className="font-extrabold text-slate-900">{selectedRecipe.wastageCap}%</span>
+                  </div>
+                </div>
+
+                <div>
+                  <span className="text-[11px] font-bold text-slate-700 block mb-1.5 uppercase tracking-wider">
+                    Required Component Pieces Breakdown:
+                  </span>
+                  <div className="rounded-lg border border-slate-200 bg-white divide-y divide-slate-100 overflow-hidden">
+                    {selectedRecipe.components?.map((comp) => (
+                      <div
+                        key={comp.id}
+                        className="flex items-center justify-between px-3 py-1.5 text-xs hover:bg-slate-50"
+                      >
+                        <span className="font-bold text-slate-900">{comp.componentName}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-slate-400 text-[11px]">
+                            {comp.piecesPerGarment}x / unit
+                          </span>
+                          <span className="font-extrabold text-indigo-800 bg-indigo-50 px-2 py-0.5 rounded-sm border border-indigo-200">
+                            {liveQty * comp.piecesPerGarment} pcs
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="py-6 text-center text-xs text-slate-500">
+                Enter a valid target quantity above to see real-time component piece counts and standard fabric requirement.
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => setIsCreateModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" variant="primary" size="md" loading={submitting}>
+              Generate & Submit Batch
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* RESUBMIT MODAL */}
+      <Modal
+        isOpen={Boolean(resubmitOrderTarget)}
+        onClose={() => setResubmitOrderTarget(null)}
+        title={`Re-cut & Resubmit Order: ${resubmitOrderTarget?.orderNo}`}
       >
         <div className="space-y-4 text-xs">
-          <p className="text-slate-600">
-            Resubmitting this order will reset component inspection counts to uncounted (RED) and transition the order back to <strong className="text-slate-900">PENDING_VERIFICATION</strong> for a fresh gatekeeper count.
+          {resubmitError && (
+            <div role="alert" className="p-3 rounded-lg bg-rose-50 border border-[#b91c1c] text-xs font-bold text-[#b91c1c]">
+              ⚠️ {resubmitError}
+            </div>
+          )}
+
+          <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-900">
+            <strong className="block mb-1 text-rose-950 font-bold">Previous Verifier Rejection Reason:</strong>
+            {resubmitOrderTarget?.verificationLogs?.[0]?.rejectionNote || 'Defect/shortage found during inspection.'}
+          </div>
+
+          <p className="text-slate-700">
+            Resubmitting will reset all component counts to uncounted (RED) and transition the order back to <strong className="text-slate-900 font-extrabold">PENDING_VERIFICATION</strong> for fresh gatekeeper inspection.
           </p>
 
           <Input
             label="Updated Actual Fabric Consumed (Yards)"
-            type="number"
-            min="0.01"
-            step="0.01"
-            value={updatedFabricYds}
+            type="text"
+            inputMode="decimal"
+            placeholder="e.g. 185.00"
+            value={resubmitFabricStr}
             onChange={(e) => {
-              const v = e.target.value;
-              setUpdatedFabricYds(v === '' ? '' : parseFloat(v));
+              setResubmitFabricStr(e.target.value);
+              setResubmitError(null);
             }}
-            helperText="Leave as-is or adjust if extra fabric was consumed in re-cut"
+            helperText="Adjust if extra fabric was consumed during re-cutting"
           />
 
           <div className="flex justify-end gap-3 pt-2">
-            <Button variant="secondary" size="sm" onClick={() => setResubmitOrderId(null)}>
+            <Button variant="secondary" size="sm" onClick={() => setResubmitOrderTarget(null)}>
               Cancel
             </Button>
-            <Button variant="primary" size="sm" onClick={handleResubmit} loading={resubmitting}>
-              Confirm Resubmission
+            <Button variant="primary" size="sm" onClick={handleResubmitConfirm} loading={resubmitting}>
+              Confirm Re-cut & Resubmit
             </Button>
           </div>
         </div>
