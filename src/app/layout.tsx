@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { AuthProvider } from '@/client/hooks/useAuth';
+import { ToastProvider } from '@/components/ui/Toast';
 
 export const metadata: Metadata = {
   title: 'ApparelFlow ERP | Cutting Operations & Gatekeeper Terminal',
@@ -15,7 +16,9 @@ export default function RootLayout({
   return (
     <html lang="en" style={{ colorScheme: 'light' }}>
       <body className="bg-slate-50 text-slate-900 min-h-screen antialiased">
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <ToastProvider>{children}</ToastProvider>
+        </AuthProvider>
       </body>
     </html>
   );
