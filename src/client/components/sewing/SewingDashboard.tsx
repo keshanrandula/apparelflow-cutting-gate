@@ -1,20 +1,40 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { useOrders } from '../../hooks/useOrders';
+import { api } from '../../api/client';
+import { CuttingOrder } from '../../types';
 import { Card, Modal } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { StatusBadge } from '../ui/Badges';
 
 export const SewingDashboard: React.FC = () => {
-  const { orders, loading, error, startSewing, refreshOrders } = useOrders();
+  const [orders, setOrders] = useState<CuttingOrder[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const [activeTab, setActiveTab] = useState<'READY' | 'IN_PRODUCTION'>('READY');
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
   const [starting, setStarting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+
+  const fetchQueue = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await api.sewing.queue();
+      setOrders(data);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to load sewing queue.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchQueue();
+  }, [fetchQueue]);
 
   const readyOrders = orders.filter((o) => o.status === 'VERIFIED');
   const inProductionOrders = orders.filter((o) => o.status === 'SEWING_STARTED');
@@ -26,10 +46,10 @@ export const SewingDashboard: React.FC = () => {
     try {
       setStarting(true);
       setActionError(null);
-      await startSewing(selectedOrderId, notes.trim() || undefined);
+      await api.sewing.start(selectedOrderId, notes.trim() || undefined);
       setSelectedOrderId(null);
       setNotes('');
-      refreshOrders();
+      await fetchQueue();
     } catch (err: unknown) {
       setActionError(err instanceof Error ? err.message : 'Failed to start sewing job.');
     } finally {
@@ -49,10 +69,16 @@ export const SewingDashboard: React.FC = () => {
             Accept verified cut batches from Gatekeeper inspection and initiate assembly line operations.
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => refreshOrders()} loading={loading}>
-          ↻ Refresh Floor
+        <Button variant="outline" size="sm" onClick={() => fetchQueue()} loading={loading}>
+          ↻ Refresh Floor Queue
         </Button>
       </div>
+
+      {error && (
+        <div className="rounded-lg bg-rose-50 border border-rose-200 p-4 text-xs font-semibold text-rose-800">
+          ⚠️ {error}
+        </div>
+      )}
 
       {actionError && (
         <div className="rounded-lg bg-rose-50 border border-rose-200 p-4 text-xs font-semibold text-rose-800">
@@ -93,7 +119,7 @@ export const SewingDashboard: React.FC = () => {
         >
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-purple-800">
-              Active Sewing Jobs
+              Active Sewing Jobs (In Assembly)
             </span>
             <span className="flex h-7 w-7 items-center justify-center rounded-full bg-purple-100 text-purple-800 font-extrabold text-sm">
               {inProductionOrders.length}
@@ -107,7 +133,7 @@ export const SewingDashboard: React.FC = () => {
 
       {/* Orders Table */}
       <Card
-        title={activeTab === 'READY' ? 'Orders Ready for Sewing Floor' : 'Orders in Sewing Production'}
+        title={activeTab === 'READY' ? 'Orders Ready for Sewing Floor' : 'Orders in Assembly Floor'}
         subtitle={
           activeTab === 'READY'
             ? 'Select an approved order to start assembly'
@@ -118,7 +144,7 @@ export const SewingDashboard: React.FC = () => {
           <div className="py-16 text-center text-xs text-slate-400">
             {activeTab === 'READY'
               ? 'No verified orders waiting for intake. Gatekeeper must approve batches first.'
-              : 'No sewing jobs started yet.'}
+              : 'No active sewing jobs in assembly.'}
           </div>
         ) : (
           <div className="overflow-x-auto">

@@ -96,6 +96,17 @@ export const api = {
       }),
   },
 
+  // Sewing Floor API
+  sewing: {
+    queue: () => fetchJson<CuttingOrder[]>('/api/sewing/queue'),
+    get: (id: string) => fetchJson<CuttingOrder>(`/api/sewing/orders/${id}`),
+    start: (id: string, notes?: string) =>
+      fetchJson<{ order: CuttingOrder; sewingJob: unknown }>(`/api/sewing/orders/${id}/start`, {
+        method: 'POST',
+        body: JSON.stringify({ notes }),
+      }),
+  },
+
   // Orders API
   orders: {
     list: () => fetchJson<CuttingOrder[]>('/api/orders'),
