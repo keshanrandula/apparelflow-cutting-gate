@@ -13,8 +13,15 @@ export interface SessionPayload {
 }
 
 function getJwtSecret(): Uint8Array {
-  const secret = process.env.JWT_SECRET || 'apparelflow-development-fallback-secret-minimum-32-chars';
-  return new TextEncoder().encode(secret);
+  const secret = process.env.JWT_SECRET;
+  if (!secret && process.env.NODE_ENV === 'production') {
+    throw new Error('FATAL SECURITY ERROR: JWT_SECRET environment variable is missing in production!');
+  }
+  const resolved = secret || 'apparelflow-production-grade-jwt-secret-minimum-32-chars-key';
+  if (resolved.length < 32) {
+    throw new Error('FATAL SECURITY ERROR: JWT_SECRET must be at least 32 characters long!');
+  }
+  return new TextEncoder().encode(resolved);
 }
 
 export async function signToken(payload: SessionPayload): Promise<string> {
