@@ -16,7 +16,7 @@ export interface ApiResponse<T> {
   };
 }
 
-class ApiError extends Error {
+export class ApiError extends Error {
   code: string;
   details?: Record<string, string[]>;
   statusCode: number;
@@ -71,6 +71,29 @@ export const api = {
       fetchJson<ExpectedComponentCalculation>(
         `/api/recipes?recipeId=${encodeURIComponent(recipeId)}&targetQty=${targetQty}`
       ),
+  },
+
+  // Verification Terminal API
+  verification: {
+    getSheet: (orderId: string) =>
+      fetchJson<{ order: CuttingOrder; expectedFabricYds: number; components: unknown[] }>(
+        `/api/verification/${orderId}`
+      ),
+    saveCounts: (orderId: string, counts: Array<{ componentId: string; actualQty: number }>) =>
+      fetchJson<CuttingOrder>(`/api/verification/${orderId}/counts`, {
+        method: 'PUT',
+        body: JSON.stringify({ counts }),
+      }),
+    approve: (orderId: string, counts: Array<{ componentId: string; actualQty: number }>) =>
+      fetchJson<CuttingOrder>(`/api/verification/${orderId}/approve`, {
+        method: 'POST',
+        body: JSON.stringify({ counts }),
+      }),
+    reject: (orderId: string, note: string) =>
+      fetchJson<CuttingOrder>(`/api/verification/${orderId}/reject`, {
+        method: 'POST',
+        body: JSON.stringify({ note }),
+      }),
   },
 
   // Orders API

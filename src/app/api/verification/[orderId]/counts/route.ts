@@ -6,15 +6,15 @@ import { handleError } from '@/server/http';
 
 export async function PUT(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ orderId: string }> }
 ) {
   try {
     const session = await requireAuth(request);
-    const { id } = await params;
+    const { orderId } = await params;
     const body = await request.json();
     const validatedData = saveCountsSchema.parse(body);
 
-    const updatedOrder = await saveCounts(session, id, validatedData.counts);
+    const updatedOrder = await saveCounts(session, orderId, validatedData.counts);
 
     return NextResponse.json(
       {
