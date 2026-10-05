@@ -1,0 +1,150 @@
+// Prisma schema for ApparelFlow ERP: Cutting Operations & Gatekeeper Verification Terminal
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  cutting_supervisor
+  cutting_verifier
+  sewing_supervisor
+}
+
+enum OrderStatus {
+  IN_PROGRESS
+  PENDING_VERIFICATION
+  VERIFIED
+  REJECTED
+  SEWING_STARTED
+}
+
+enum ItemStatus {
+  GREEN
+  YELLOW
+  RED
+}
+
+enum Decision {
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id               String            @id @default(cuid())
+  email            String            @unique
+  passwordHash     String
+  name             String
+  role             Role
+  createdOrders    CuttingOrder[]    @relation("CreatedOrders")
+  verifiedOrders   CuttingOrder[]    @relation("VerifiedOrders")
+  verificationLogs VerificationLog[]
+  sewingJobs       SewingJob[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@index([role])
+}
+
+model Recipe {
+  id             String            @id @default(cuid())
+  recipeCode     String            @unique
+  name           String
+  stdFabricYards Float             // Standard fabric yards needed per garment unit
+  wastageCap     Float             // Allowable threshold % (e.g., 5.0 for 5%)
+  components     RecipeComponent[]
+  cuttingOrders  CuttingOrder[]
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+}
+
+model RecipeComponent {
+  id                String             @id @default(cuid())
+  recipeId          String
+  recipe            Recipe             @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  componentName     String             // e.g., "Front Panel", "Back Panel", "Sleeve"
+  piecesPerGarment  Int                // Quantity required per 1 garment
+  verificationItems VerificationItem[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  @@index([recipeId])
+}
+
+model CuttingOrder {
+  id               String             @id @default(cuid())
+  orderNo          String             @unique // Format: CUT-YYYY-0001
+  recipeId         String
+  recipe           Recipe             @relation(fields: [recipeId], references: [id])
+  targetQty        Int                // Non-negative integer garment count
+  fabricRollId     String
+  actualFabricYds  Float
+  status           OrderStatus        @default(IN_PROGRESS)
+  createdById      String
+  createdBy        User               @relation("CreatedOrders", fields: [createdById], references: [id])
+  verifiedById     String?
+  verifiedBy       User?              @relation("VerifiedOrders", fields: [verifiedById], references: [id])
+  verifiedAt       DateTime?
+  wastagePct       Float?             // Computed & stored upon verification approval
+  items            VerificationItem[]
+  verificationLogs VerificationLog[]
+  sewingJobs       SewingJob[]
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  @@index([status])
+  @@index([createdById])
+  @@index([recipeId])
+}
+
+model VerificationItem {
+  id          String          @id @default(cuid())
+  orderId     String
+  order       CuttingOrder    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  componentId String
+  component   RecipeComponent @relation(fields: [componentId], references: [id])
+  expectedQty Int             // targetQty * piecesPerGarment
+  actualQty   Int             @default(0)
+  status      ItemStatus      @default(RED)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@unique([orderId, componentId])
+  @@index([orderId])
+  @@index([componentId])
+}
+
+model VerificationLog {
+  id            String       @id @default(cuid())
+  orderId       String
+  order         CuttingOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  verifierId    String
+  verifier      User         @relation(fields: [verifierId], references: [id])
+  decision      Decision
+  rejectionNote String?
+  wastagePct    Float?
+  timestamp     DateTime     @default(now())
+
+  @@index([orderId])
+  @@index([verifierId])
+}
+
+model SewingJob {
+  id          String       @id @default(cuid())
+  orderId     String       @unique
+  order       CuttingOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  startedById String
+  startedBy   User         @relation(fields: [startedById], references: [id])
+  startedAt   DateTime     @default(now())
+  notes       String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([orderId])
+  @@index([startedById])
+}
