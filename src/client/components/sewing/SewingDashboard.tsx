@@ -1,21 +1,28 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import Link from 'next/link';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { api } from '../../api/client';
 import { CuttingOrder } from '../../types';
 import { Card, Modal } from '../ui/Card';
 import { Button } from '../ui/Button';
-import { StatusBadge } from '../ui/Badges';
+import { StatusBadge, TrafficBadge } from '../ui/Badges';
+import { useToast } from '@/components/ui/Toast';
 
 export const SewingDashboard: React.FC = () => {
+  const { showToast } = useToast();
   const [orders, setOrders] = useState<CuttingOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [activeTab, setActiveTab] = useState<'READY' | 'IN_PRODUCTION'>('READY');
-  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
-  const [notes, setNotes] = useState('');
+  const [activeTab, setActiveTab] = useState<'READY' | 'IN_ASSEMBLY'>('READY');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Drawer / Inspection state
+  const [inspectingOrder, setInspectingOrder] = useState<CuttingOrder | null>(null);
+
+  // Start Sewing Modal state
+  const [orderToStart, setOrderToStart] = useState<CuttingOrder | null>(null);
+  const [lineNotes, setLineNotes] = useState('');
   const [starting, setStarting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -26,32 +33,63 @@ export const SewingDashboard: React.FC = () => {
       const data = await api.sewing.queue();
       setOrders(data);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to load sewing queue.');
+      const msg = err instanceof Error ? err.message : 'Failed to load sewing queue.';
+      setError(msg);
+      showToast(msg, 'error');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [showToast]);
 
   useEffect(() => {
     fetchQueue();
   }, [fetchQueue]);
 
-  const readyOrders = orders.filter((o) => o.status === 'VERIFIED');
-  const inProductionOrders = orders.filter((o) => o.status === 'SEWING_STARTED');
+  const readyOrders = useMemo(
+    () => orders.filter((o) => o.status === 'VERIFIED'),
+    [orders]
+  );
+  const inAssemblyOrders = useMemo(
+    () => orders.filter((o) => o.status === 'SEWING_STARTED'),
+    [orders]
+  );
 
-  const displayedOrders = activeTab === 'READY' ? readyOrders : inProductionOrders;
+  const displayedOrders = useMemo(() => {
+    const list = activeTab === 'READY' ? readyOrders : inAssemblyOrders;
+    if (!searchQuery.trim()) return list;
+    const q = searchQuery.toLowerCase();
+    return list.filter(
+      (o) =>
+        o.orderNo.toLowerCase().includes(q) ||
+        o.recipe?.name.toLowerCase().includes(q) ||
+        o.fabricRollId.toLowerCase().includes(q) ||
+        (o.verifiedBy?.name && o.verifiedBy.name.toLowerCase().includes(q))
+    );
+  }, [activeTab, readyOrders, inAssemblyOrders, searchQuery]);
 
-  const handleStartSewing = async () => {
-    if (!selectedOrderId) return;
+  const handleOpenStartModal = (order: CuttingOrder) => {
+    setOrderToStart(order);
+    setLineNotes('');
+    setActionError(null);
+  };
+
+  const handleConfirmStartSewing = async () => {
+    if (!orderToStart) return;
     try {
       setStarting(true);
       setActionError(null);
-      await api.sewing.start(selectedOrderId, notes.trim() || undefined);
-      setSelectedOrderId(null);
-      setNotes('');
+      await api.sewing.start(orderToStart.id, lineNotes.trim() || undefined);
+      showToast(`Batch ${orderToStart.orderNo} is now IN ASSEMBLY on the sewing floor!`, 'success');
+      setOrderToStart(null);
+      setLineNotes('');
+      if (inspectingOrder?.id === orderToStart.id) {
+        setInspectingOrder(null);
+      }
       await fetchQueue();
     } catch (err: unknown) {
-      setActionError(err instanceof Error ? err.message : 'Failed to start sewing job.');
+      const msg = err instanceof Error ? err.message : 'Failed to initiate sewing job.';
+      setActionError(msg);
+      showToast(msg, 'error');
     } finally {
       setStarting(false);
     }
@@ -59,196 +97,482 @@ export const SewingDashboard: React.FC = () => {
 
   return (
     <div className="space-y-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Station Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
         <div>
-          <h1 className="text-2xl font-black tracking-tight text-slate-900">
-            Sewing Production Intake Floor
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Accept verified cut batches from Gatekeeper inspection and initiate assembly line operations.
+          <div className="flex items-center gap-3">
+            <span className="p-2 rounded-lg bg-purple-700 text-white font-black text-sm">
+              SEW
+            </span>
+            <h1 className="text-2xl font-black tracking-tight text-slate-900">
+              Sewing Supervisor Floor Workspace
+            </h1>
+          </div>
+          <p className="text-xs text-slate-600 mt-1 font-medium">
+            Gatekeeper Verified Cutting Batches • Line Intake Management • Assembly Operations Floor
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => fetchQueue()} loading={loading}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => fetchQueue()}
+          loading={loading}
+          className="self-start sm:self-auto"
+        >
           ↻ Refresh Floor Queue
         </Button>
       </div>
 
       {error && (
-        <div className="rounded-lg bg-rose-50 border border-rose-200 p-4 text-xs font-semibold text-rose-800">
-          ⚠️ {error}
-        </div>
-      )}
-
-      {actionError && (
-        <div className="rounded-lg bg-rose-50 border border-rose-200 p-4 text-xs font-semibold text-rose-800">
-          ⚠️ {actionError}
-        </div>
-      )}
-
-      {/* Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div
+          role="alert"
+          className="rounded-xl bg-rose-50 border-2 border-rose-300 p-4 text-xs font-bold text-rose-900 flex items-center justify-between"
+        >
+          <span>⚠️ {error}</span>
+          <Button variant="outline" size="sm" onClick={() => fetchQueue()}>
+            Retry
+          </Button>
+        </div>
+      )}
+
+      {/* Metric Tabs */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Tab 1: Ready for Sewing */}
+        <div
+          role="button"
+          tabIndex={0}
           onClick={() => setActiveTab('READY')}
-          className={`cursor-pointer rounded-xl p-5 border transition ${
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setActiveTab('READY');
+            }
+          }}
+          className={`cursor-pointer rounded-2xl p-5 border-2 transition-all text-left ${
             activeTab === 'READY'
-              ? 'border-emerald-600 bg-emerald-50/40 shadow-xs ring-1 ring-emerald-600'
-              : 'border-slate-200 bg-white hover:border-slate-300'
+              ? 'border-emerald-600 bg-emerald-50/50 shadow-sm ring-2 ring-emerald-500/30'
+              : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-emerald-800">
-              Verified & Ready for Sewing
+            <span className="text-xs font-black uppercase tracking-wider text-emerald-900">
+              Ready for Sewing (Verified Queue)
             </span>
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-100 text-emerald-800 font-extrabold text-sm">
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-600 text-white font-black text-sm shadow-xs">
               {readyOrders.length}
             </span>
           </div>
-          <p className="text-xs text-slate-500 mt-2">
-            Batches approved by Gatekeeper, ready for line assignment.
+          <p className="text-xs text-slate-600 mt-2 font-medium">
+            Batches approved by Gatekeeper, with verified physical piece counts ready for machine line assignment.
           </p>
         </div>
 
+        {/* Tab 2: In Assembly Floor */}
         <div
-          onClick={() => setActiveTab('IN_PRODUCTION')}
-          className={`cursor-pointer rounded-xl p-5 border transition ${
-            activeTab === 'IN_PRODUCTION'
-              ? 'border-purple-600 bg-purple-50/40 shadow-xs ring-1 ring-purple-600'
-              : 'border-slate-200 bg-white hover:border-slate-300'
+          role="button"
+          tabIndex={0}
+          onClick={() => setActiveTab('IN_ASSEMBLY')}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setActiveTab('IN_ASSEMBLY');
+            }
+          }}
+          className={`cursor-pointer rounded-2xl p-5 border-2 transition-all text-left ${
+            activeTab === 'IN_ASSEMBLY'
+              ? 'border-purple-600 bg-purple-50/50 shadow-sm ring-2 ring-purple-500/30'
+              : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-purple-800">
-              Active Sewing Jobs (In Assembly)
+            <span className="text-xs font-black uppercase tracking-wider text-purple-900">
+              In Assembly Floor (Active Line Jobs)
             </span>
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-purple-100 text-purple-800 font-extrabold text-sm">
-              {inProductionOrders.length}
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-purple-600 text-white font-black text-sm shadow-xs">
+              {inAssemblyOrders.length}
             </span>
           </div>
-          <p className="text-xs text-slate-500 mt-2">
-            Batches currently running on sewing machine lines.
+          <p className="text-xs text-slate-600 mt-2 font-medium">
+            Active sewing jobs currently in production and running on assembly floor lines.
           </p>
         </div>
       </div>
 
-      {/* Orders Table */}
+      {/* Orders Table Container */}
       <Card
-        title={activeTab === 'READY' ? 'Orders Ready for Sewing Floor' : 'Orders in Assembly Floor'}
+        title={
+          activeTab === 'READY'
+            ? `Verified Batches Ready for Sewing Floor (${displayedOrders.length})`
+            : `Active Assembly Floor Jobs (${displayedOrders.length})`
+        }
         subtitle={
           activeTab === 'READY'
-            ? 'Select an approved order to start assembly'
-            : 'Active assembly lines and batch timestamps'
+            ? 'Inspect verified component counts, review fabric wastage, and initiate assembly lines'
+            : 'Monitor active batches on the floor with assigned line notes and timestamps'
+        }
+        action={
+          <div className="w-full sm:w-64">
+            <input
+              type="text"
+              placeholder="Search batch #, style, or roll..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full text-xs rounded-lg border border-slate-300 px-3 py-1.5 text-slate-900 bg-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-600 shadow-xs"
+              style={{ color: '#111827', backgroundColor: '#ffffff' }}
+            />
+          </div>
         }
       >
         {displayedOrders.length === 0 ? (
-          <div className="py-16 text-center text-xs text-slate-400">
+          <div className="py-20 text-center text-xs text-slate-500 font-medium">
             {activeTab === 'READY'
-              ? 'No verified orders waiting for intake. Gatekeeper must approve batches first.'
-              : 'No active sewing jobs in assembly.'}
+              ? 'No verified batches waiting in queue. Gatekeeper verifier must approve batches before they appear here.'
+              : 'No active sewing jobs currently in assembly.'}
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-600 uppercase font-bold text-[10px] tracking-wider border-b border-slate-200">
+              <thead className="bg-slate-100 text-slate-700 uppercase font-bold text-[11px] tracking-wider border-b border-slate-300">
                 <tr>
-                  <th className="py-3 px-4">Order No</th>
-                  <th className="py-3 px-4">Style / Recipe</th>
-                  <th className="py-3 px-4 text-center">Units</th>
-                  <th className="py-3 px-4 text-center">Approved Wastage %</th>
+                  <th className="py-3 px-4">Order Batch #</th>
+                  <th className="py-3 px-4">Style & Recipe</th>
+                  <th className="py-3 px-4 text-center">Target Units</th>
+                  <th className="py-3 px-4 text-center">Fabric Wastage %</th>
+                  <th className="py-3 px-4">Gatekeeper Verifier</th>
                   <th className="py-3 px-4 text-center">Status</th>
                   <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 font-medium">
-                {displayedOrders.map((order) => (
-                  <tr key={order.id} className="hover:bg-slate-50/80 transition">
-                    <td className="py-3.5 px-4 font-bold text-indigo-600">
-                      <Link href={`/orders/${order.id}`} className="hover:underline">
-                        {order.orderNo}
-                      </Link>
-                      <span className="block text-[10px] text-slate-400 font-normal mt-0.5">
-                        Verified:{' '}
-                        {order.verifiedAt
-                          ? new Date(order.verifiedAt).toLocaleDateString()
-                          : 'N/A'}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4 text-slate-900 font-semibold">
-                      {order.recipe?.name}
-                      <span className="block text-[10px] text-slate-500 font-normal">
-                        Roll: {order.fabricRollId}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4 text-center text-slate-900 font-bold">
-                      {order.targetQty}
-                    </td>
-                    <td className="py-3.5 px-4 text-center font-bold text-slate-800">
-                      {order.wastagePct !== null && order.wastagePct !== undefined
-                        ? `${order.wastagePct > 0 ? `+${order.wastagePct}%` : `${order.wastagePct}%`}`
-                        : 'N/A'}
-                    </td>
-                    <td className="py-3.5 px-4 text-center">
-                      <StatusBadge status={order.status} size="sm" />
-                    </td>
-                    <td className="py-3.5 px-4 text-right space-x-2">
-                      {order.status === 'VERIFIED' && (
-                        <Button
-                          variant="success"
-                          size="sm"
-                          onClick={() => setSelectedOrderId(order.id)}
+              <tbody className="divide-y divide-slate-200 font-medium">
+                {displayedOrders.map((order) => {
+                  const isWastageOverCap =
+                    order.wastagePct !== null &&
+                    order.wastagePct !== undefined &&
+                    order.recipe?.wastageCap !== undefined &&
+                    order.wastagePct > order.recipe.wastageCap;
+
+                  return (
+                    <tr key={order.id} className="hover:bg-slate-50/80 transition">
+                      <td className="py-3.5 px-4 font-black text-slate-900">
+                        <button
+                          onClick={() => setInspectingOrder(order)}
+                          className="text-purple-700 hover:text-purple-900 font-black hover:underline"
                         >
-                          ▶ Start Sewing Floor
+                          {order.orderNo}
+                        </button>
+                        <span className="block text-[11px] text-slate-500 font-normal mt-0.5">
+                          Roll ID: <strong className="text-slate-700">{order.fabricRollId}</strong>
+                        </span>
+                      </td>
+
+                      <td className="py-3.5 px-4">
+                        <span className="font-bold text-slate-900 block">
+                          {order.recipe?.name}
+                        </span>
+                        <span className="text-[11px] text-slate-500 block">
+                          Code: {order.recipe?.recipeCode}
+                        </span>
+                      </td>
+
+                      <td className="py-3.5 px-4 text-center font-black text-slate-900 text-sm">
+                        {order.targetQty} pcs
+                      </td>
+
+                      <td className="py-3.5 px-4 text-center">
+                        {order.wastagePct !== null && order.wastagePct !== undefined ? (
+                          <div className="inline-flex flex-col items-center">
+                            <span
+                              className={`font-black text-xs ${
+                                isWastageOverCap ? 'text-rose-700' : 'text-emerald-700'
+                              }`}
+                            >
+                              {order.wastagePct > 0
+                                ? `+${order.wastagePct}%`
+                                : `${order.wastagePct}%`}
+                            </span>
+                            {isWastageOverCap && (
+                              <span className="inline-block mt-0.5 px-1.5 py-0.5 rounded text-[10px] font-black bg-rose-100 text-rose-900 border border-rose-300">
+                                ⚠ Over Cap ({order.recipe.wastageCap}%)
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-slate-400">0.0%</span>
+                        )}
+                      </td>
+
+                      <td className="py-3.5 px-4">
+                        <div className="text-slate-900 font-bold">
+                          {order.verifiedBy?.name || 'Gatekeeper Verifier'}
+                        </div>
+                        <div className="text-[11px] text-slate-500">
+                          {order.verifiedAt
+                            ? new Date(order.verifiedAt).toLocaleString([], {
+                                dateStyle: 'short',
+                                timeStyle: 'short',
+                              })
+                            : 'Verified'}
+                        </div>
+                      </td>
+
+                      <td className="py-3.5 px-4 text-center">
+                        <StatusBadge status={order.status} size="sm" />
+                      </td>
+
+                      <td className="py-3.5 px-4 text-right space-x-2">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => setInspectingOrder(order)}
+                        >
+                          👁 Inspect Drawer
                         </Button>
-                      )}
-                      <Link
-                        href={`/orders/${order.id}`}
-                        className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition"
-                      >
-                        View Timeline
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
+
+                        {order.status === 'VERIFIED' && (
+                          <Button
+                            variant="success"
+                            size="sm"
+                            onClick={() => handleOpenStartModal(order)}
+                          >
+                            ▶ Start Assembly
+                          </Button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         )}
       </Card>
 
-      {/* Start Sewing Modal */}
+      {/* Batch Detail Slide-Over Drawer Modal */}
       <Modal
-        isOpen={Boolean(selectedOrderId)}
-        onClose={() => setSelectedOrderId(null)}
-        title="Start Sewing Production Job"
+        isOpen={Boolean(inspectingOrder)}
+        onClose={() => setInspectingOrder(null)}
+        title={`Batch Inspection: ${inspectingOrder?.orderNo}`}
       >
-        <div className="space-y-4 text-xs">
-          <p className="text-slate-600">
-            You are accepting this verified batch onto the sewing floor. The order status will transition to <strong className="text-purple-700 font-bold">SEWING_STARTED</strong>.
-          </p>
+        {inspectingOrder && (
+          <div className="space-y-6 text-xs max-h-[75vh] overflow-y-auto pr-1">
+            {/* Header info */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-xl bg-slate-50 border border-slate-200">
+              <div>
+                <span className="text-slate-500 block font-medium">Garment Style:</span>
+                <span className="text-sm font-black text-slate-900">
+                  {inspectingOrder.recipe?.name}
+                </span>
+                <span className="text-[11px] text-slate-500 block">
+                  {inspectingOrder.recipe?.recipeCode}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-500 block font-medium">Target Units:</span>
+                <span className="text-base font-black text-slate-900">
+                  {inspectingOrder.targetQty} pcs
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-500 block font-medium">Fabric Roll:</span>
+                <span className="text-sm font-bold text-slate-900">
+                  {inspectingOrder.fabricRollId}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-500 block font-medium">Actual Fabric Used:</span>
+                <span className="text-sm font-bold text-slate-900">
+                  {inspectingOrder.actualFabricYds} yds
+                </span>
+              </div>
+            </div>
 
-          <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-              Line Assignment / Production Notes (Optional):
-            </label>
-            <textarea
-              rows={3}
-              placeholder="e.g. Assigned to Sewing Line #4; Operator Team Alpha."
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              className="w-full rounded-lg bg-white p-3 text-sm text-[#111827] border border-slate-300 shadow-sm focus:border-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-500/20"
-              style={{ color: '#111827', backgroundColor: '#ffffff' }}
-            />
-          </div>
+            {/* Verification Metadata & Wastage Card */}
+            <div className="p-4 rounded-xl bg-purple-50/60 border border-purple-200 space-y-3">
+              <div className="flex items-center justify-between border-b border-purple-200 pb-2.5">
+                <div>
+                  <span className="font-extrabold text-purple-950 block text-xs">
+                    Gatekeeper Verified By: {inspectingOrder.verifiedBy?.name || 'Gatekeeper Verifier'}
+                  </span>
+                  <span className="text-[11px] text-purple-800 block">
+                    Verified Timestamp:{' '}
+                    {inspectingOrder.verifiedAt
+                      ? new Date(inspectingOrder.verifiedAt).toLocaleString()
+                      : 'N/A'}
+                  </span>
+                </div>
+                <StatusBadge status={inspectingOrder.status} size="sm" />
+              </div>
 
-          <div className="flex justify-end gap-3 pt-2">
-            <Button variant="secondary" size="sm" onClick={() => setSelectedOrderId(null)}>
-              Cancel
-            </Button>
-            <Button variant="primary" size="sm" onClick={handleStartSewing} loading={starting}>
-              Confirm & Start Sewing
-            </Button>
+              {/* Wastage Compliance Section */}
+              <div className="flex items-center justify-between pt-1">
+                <div>
+                  <span className="text-slate-600 block">Calculated Fabric Wastage:</span>
+                  <span
+                    className={`text-base font-black ${
+                      inspectingOrder.wastagePct !== null &&
+                      inspectingOrder.wastagePct !== undefined &&
+                      inspectingOrder.wastagePct > inspectingOrder.recipe.wastageCap
+                        ? 'text-rose-700'
+                        : 'text-emerald-800'
+                    }`}
+                  >
+                    {inspectingOrder.wastagePct !== null && inspectingOrder.wastagePct !== undefined
+                      ? `${inspectingOrder.wastagePct > 0 ? `+${inspectingOrder.wastagePct}%` : `${inspectingOrder.wastagePct}%`}`
+                      : '0.0%'}
+                  </span>
+                  <span className="text-[11px] text-slate-500 block">
+                    Recipe Allowed Cap: {inspectingOrder.recipe.wastageCap}%
+                  </span>
+                </div>
+
+                {inspectingOrder.wastagePct !== null &&
+                inspectingOrder.wastagePct !== undefined &&
+                inspectingOrder.wastagePct > inspectingOrder.recipe.wastageCap ? (
+                  <div className="px-3 py-1.5 rounded-lg bg-rose-100 border border-rose-300 text-rose-900 font-bold text-xs flex items-center gap-1.5">
+                    <span>⚠️</span>
+                    <span>Wastage Cap Exceeded</span>
+                  </div>
+                ) : (
+                  <div className="px-3 py-1.5 rounded-lg bg-emerald-100 border border-emerald-300 text-emerald-900 font-bold text-xs flex items-center gap-1.5">
+                    <span>✓</span>
+                    <span>Within Wastage Tolerance</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Verified Component Piece Counts Table */}
+            <div>
+              <h4 className="text-xs font-black uppercase tracking-wider text-slate-800 mb-2">
+                Physical Component Piece Count Verification:
+              </h4>
+              <div className="rounded-xl border border-slate-200 overflow-hidden">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-100 text-slate-700 font-bold text-[11px] uppercase border-b border-slate-200">
+                    <tr>
+                      <th className="py-2.5 px-3">Component</th>
+                      <th className="py-2.5 px-3 text-center">Multiplier</th>
+                      <th className="py-2.5 px-3 text-center">Expected (pcs)</th>
+                      <th className="py-2.5 px-3 text-center">Actual Verified (pcs)</th>
+                      <th className="py-2.5 px-3 text-center">Compliance Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-medium">
+                    {inspectingOrder.items?.map((item) => {
+                      const diff = item.actualQty - item.expectedQty;
+                      return (
+                        <tr key={item.id} className="hover:bg-slate-50">
+                          <td className="py-2.5 px-3 font-bold text-slate-900">
+                            {item.component?.componentName}
+                          </td>
+                          <td className="py-2.5 px-3 text-center text-slate-500">
+                            {item.component?.piecesPerGarment}x / garment
+                          </td>
+                          <td className="py-2.5 px-3 text-center text-slate-900 font-extrabold">
+                            {item.expectedQty}
+                          </td>
+                          <td className="py-2.5 px-3 text-center font-black text-slate-900">
+                            {item.actualQty}
+                          </td>
+                          <td className="py-2.5 px-3 text-center">
+                            <TrafficBadge status={item.status} diff={diff} />
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex items-center justify-between pt-4 border-t border-slate-200">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setInspectingOrder(null)}
+              >
+                Close Drawer
+              </Button>
+
+              {inspectingOrder.status === 'VERIFIED' && (
+                <Button
+                  variant="success"
+                  size="md"
+                  onClick={() => {
+                    const ord = inspectingOrder;
+                    setInspectingOrder(null);
+                    handleOpenStartModal(ord);
+                  }}
+                >
+                  ▶ Accept & Start Sewing Assembly
+                </Button>
+              )}
+            </div>
           </div>
-        </div>
+        )}
+      </Modal>
+
+      {/* Start Sewing Assembly Confirmation Modal */}
+      <Modal
+        isOpen={Boolean(orderToStart)}
+        onClose={() => setOrderToStart(null)}
+        title="Accept Batch to Sewing Assembly Floor"
+      >
+        {orderToStart && (
+          <div className="space-y-4 text-xs">
+            <p className="text-slate-700 leading-relaxed">
+              You are accepting verified Batch <strong className="text-slate-900 font-extrabold">{orderToStart.orderNo}</strong> ({orderToStart.targetQty} pcs of {orderToStart.recipe.name}) onto the sewing assembly floor.
+            </p>
+
+            <div className="p-3 rounded-lg bg-purple-50 border border-purple-200 text-purple-950">
+              <span className="font-bold block mb-1">Floor Transition:</span>
+              Status will update from <strong className="text-emerald-700 font-extrabold">VERIFIED</strong> → <strong className="text-purple-700 font-extrabold">SEWING_STARTED</strong>.
+            </div>
+
+            {actionError && (
+              <div className="rounded-lg bg-rose-50 border border-rose-200 p-3 text-xs font-bold text-rose-800">
+                ⚠️ {actionError}
+              </div>
+            )}
+
+            <div>
+              <label
+                htmlFor="lineNotes"
+                className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1"
+              >
+                Line Assignment & Floor Notes (Optional):
+              </label>
+              <textarea
+                id="lineNotes"
+                rows={3}
+                placeholder="e.g. Assigned to Sewing Line #4; Operator Lead: Kamala; Needle Size 14."
+                value={lineNotes}
+                onChange={(e) => setLineNotes(e.target.value)}
+                className="w-full rounded-xl bg-white p-3 text-sm text-[#111827] border border-slate-300 shadow-xs focus:border-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-500/20"
+                style={{ color: '#111827', backgroundColor: '#ffffff' }}
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 pt-3 border-t border-slate-200">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setOrderToStart(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleConfirmStartSewing}
+                loading={starting}
+              >
+                Confirm & Start Sewing Line
+              </Button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );
