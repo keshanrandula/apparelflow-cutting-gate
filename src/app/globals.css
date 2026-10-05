@@ -14,31 +14,49 @@ html, body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
-/* Enforce explicit high-contrast text on all form elements - Rule #6 */
-input,
-select,
-textarea,
-button {
-  color: #111827;
-}
-
+/* Explicit Global Form Inputs & WCAG AA Contrast Rules */
 input,
 select,
 textarea {
   background-color: #ffffff !important;
   color: #111827 !important;
-  border: 1px solid #cbd5e1;
+  border: 1px solid #6b7280 !important;
+  border-radius: 0.5rem;
+  transition: all 0.15s ease-in-out;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #6b7280 !important;
+  opacity: 1;
 }
 
 input:focus,
 select:focus,
 textarea:focus {
-  outline: none;
-  border-color: #4f46e5;
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+  outline: none !important;
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 2px #2563eb !important;
 }
 
-::placeholder {
-  color: #94a3b8 !important;
-  opacity: 1;
+input:disabled,
+select:disabled,
+textarea:disabled {
+  background-color: #f3f4f6 !important;
+  color: #374151 !important;
+  border-color: #9ca3af !important;
+  cursor: not-allowed;
+  opacity: 1; /* prevent browser default washed out text */
+}
+
+/* Explicit styling for option elements */
+option {
+  background-color: #ffffff !important;
+  color: #111827 !important;
+  padding: 8px 12px;
+}
+
+option:disabled {
+  color: #9ca3af !important;
+  background-color: #f3f4f6 !important;
 }

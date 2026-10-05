@@ -2,19 +2,18 @@
 
 import React, { forwardRef, useId } from 'react';
 
-export interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
+export interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   label?: string;
   error?: string;
   helperText?: string;
-  options?: Array<{ value: string; label: string; disabled?: boolean }>;
 }
 
-export const Select = forwardRef<HTMLSelectElement, SelectProps>(
-  ({ label, error, helperText, options, children, className = '', id, ...props }, ref) => {
+export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
+  ({ label, error, helperText, className = '', id, rows = 3, ...props }, ref) => {
     const generatedId = useId();
-    const selectId = id || (label ? label.toLowerCase().replace(/\s+/g, '-') : generatedId);
-    const errorId = `${selectId}-error`;
-    const helperId = `${selectId}-helper`;
+    const textareaId = id || (label ? label.toLowerCase().replace(/\s+/g, '-') : generatedId);
+    const errorId = `${textareaId}-error`;
+    const helperId = `${textareaId}-helper`;
 
     const describedBy = error
       ? errorId
@@ -26,32 +25,25 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
       <div className="w-full">
         {label && (
           <label
-            htmlFor={selectId}
+            htmlFor={textareaId}
             className="block text-xs font-bold uppercase tracking-wider text-slate-800 mb-1.5"
           >
             {label}
             {props.required && <span className="text-rose-700 ml-1" aria-hidden="true">*</span>}
           </label>
         )}
-        <select
+        <textarea
           ref={ref}
-          id={selectId}
+          id={textareaId}
+          rows={rows}
           aria-invalid={Boolean(error)}
           aria-describedby={describedBy}
-          className={`w-full rounded-lg px-3.5 py-2 text-sm text-[#111827] bg-white border ${
+          className={`w-full rounded-lg px-3.5 py-2.5 text-sm text-[#111827] bg-white placeholder:text-[#6b7280] border ${
             error ? 'border-[#b91c1c] focus:border-[#b91c1c]' : 'border-[#6b7280] focus:border-[#2563eb]'
           } ${className}`}
           style={{ color: '#111827', backgroundColor: '#ffffff' }}
           {...props}
-        >
-          {options
-            ? options.map((opt) => (
-                <option key={opt.value} value={opt.value} disabled={opt.disabled} className="text-[#111827] bg-white">
-                  {opt.label}
-                </option>
-              ))
-            : children}
-        </select>
+        />
         {helperText && !error && (
           <p id={helperId} className="mt-1 text-xs text-slate-600">
             {helperText}
@@ -68,4 +60,4 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
   }
 );
 
-Select.displayName = 'Select';
+Textarea.displayName = 'Textarea';
