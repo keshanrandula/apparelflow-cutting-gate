@@ -63,47 +63,48 @@ export const StatusBadge: React.FC<{ status: OrderStatus; size?: 'sm' | 'md' }> 
   );
 };
 
-export const TrafficBadge: React.FC<{ status: ItemStatus; label?: string }> = ({
-  status,
-  label,
-}) => {
+export const TrafficBadge: React.FC<{
+  status: ItemStatus;
+  diff?: number;
+  label?: string;
+}> = ({ status, diff, label }) => {
   const config: Record<
     ItemStatus,
-    { bg: string; text: string; border: string; icon: string; desc: string }
+    { bg: string; text: string; border: string; icon: string; defaultLabel: string }
   > = {
     GREEN: {
       bg: 'bg-emerald-100',
       text: 'text-emerald-950',
       border: 'border-emerald-400',
       icon: '✓',
-      desc: 'Exact Match',
+      defaultLabel: 'GREEN Match',
     },
     YELLOW: {
       bg: 'bg-amber-100',
       text: 'text-amber-950',
       border: 'border-amber-400',
       icon: '▲',
-      desc: 'Surplus',
+      defaultLabel: diff !== undefined && diff > 0 ? `YELLOW Excess +${diff}` : 'YELLOW Excess',
     },
     RED: {
       bg: 'bg-rose-100',
       text: 'text-rose-950',
       border: 'border-rose-400',
       icon: '✕',
-      desc: 'Shortage',
+      defaultLabel: diff !== undefined ? `RED Shortage -${Math.abs(diff)}` : 'RED Shortage',
     },
   };
 
-  const current = config[status];
+  const current = config[status] || config.GREEN;
+  const displayText = label || current.defaultLabel;
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-extrabold border ${current.bg} ${current.text} ${current.border}`}
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-black border ${current.bg} ${current.text} ${current.border}`}
       role="status"
     >
-      <span aria-hidden="true" className="font-black">{current.icon}</span>
-      <span className="uppercase tracking-wider">{label || status}</span>
-      <span className="font-semibold text-[11px] opacity-90">({current.desc})</span>
+      <span aria-hidden="true" className="font-extrabold">{current.icon}</span>
+      <span className="tracking-wide uppercase font-bold">{displayText}</span>
     </span>
   );
 };

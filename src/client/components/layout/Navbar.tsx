@@ -56,9 +56,9 @@ export const Navbar: React.FC = () => {
 
               {user.role === 'cutting_verifier' && (
                 <Link
-                  href="/verification"
+                  href="/verifier"
                   className={`px-3 py-1.5 rounded-md text-xs font-semibold transition ${
-                    pathname === '/verification'
+                    pathname === '/verifier' || pathname === '/verification'
                       ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                   }`}

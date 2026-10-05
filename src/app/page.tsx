@@ -15,7 +15,7 @@ export default function HomePage() {
       } else if (user.role === 'cutting_supervisor') {
         router.push('/cutting');
       } else if (user.role === 'cutting_verifier') {
-        router.push('/verification');
+        router.push('/verifier');
       } else if (user.role === 'sewing_supervisor') {
         router.push('/sewing');
       } else {
