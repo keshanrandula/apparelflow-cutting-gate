@@ -1,6 +1,8 @@
 # ApparelFlow ERP: Cutting Operations & Gatekeeper Verification Terminal
 
-> A production-grade Next.js 14+ ERP system engineered for garment factory cutting operations, real-time bill-of-materials calculation, server-enforced state machines, and gatekeeper verification terminals.
+> A production-grade Next.js ERP system engineered for garment factory cutting operations, real-time bill-of-materials calculation, server-enforced state machines, and gatekeeper verification terminals.
+
+[![CI - Automated Test Suite & Build Verification](https://github.com/keshanrandula/apparelflow-cutting-gate/actions/workflows/ci.yml/badge.svg)](https://github.com/keshanrandula/apparelflow-cutting-gate/actions/workflows/ci.yml)
 
 ---
 

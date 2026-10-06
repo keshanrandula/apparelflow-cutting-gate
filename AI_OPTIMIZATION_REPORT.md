@@ -12,10 +12,11 @@
 During the development of the ApparelFlow ERP Cutting Operations & Gatekeeper Verification Terminal, modern AI coding tools were utilized to accelerate boilerplate scaffolding, initial schema drafts, and exploratory UI mockups:
 
 * **AI Tools Utilized:**
-  * **Google Antigravity / Gemini 2.5 Pro & 3.7 Flash:** Used for full-stack architecture scaffolding, Prisma schema modeling, and writing automated Vitest integration suites.
-  * **Cursor / Claude 3.5 Sonnet:** Used for drafting Tailwind CSS layout components, responsive drawer transitions, and Zod validator schemas.
+  * **Anthropic Claude (Claude 3.5 Sonnet / Claude.ai):** Utilized for requirement decomposition, prompt engineering, and structuring detailed technical prompt specifications from the Webtezza assessment brief.
+  * **Google Antigravity (Gemini 2.5 Pro & Gemini 3.7 Flash):** Utilized as the primary agentic pairing and execution environment for full-stack codebase scaffolding, relational Prisma schema modeling, drafting Tailwind CSS layout components, implementing server-side Zod validation schemas, and executing automated Vitest test suites.
 * **Prompting Strategy & Task Delegation:**
-  * *Domain Modeling:* Prompted with garment manufacturing requirements (recipe multipliers, bill of materials, fabric roll tracking).
+  * *Prompt Engineering (via Claude):* Structured structured multi-phase prompts breaking down complex business logic (BOM component multipliers, deterministic state machine constraints, and strict server-side gatekeeper hard-stop boundaries).
+  * *Domain Modeling:* Prompted with garment manufacturing specifications (recipe multipliers, bill of materials, fabric roll tracking).
   * *State Machine Design:* Prompted for deterministic state machine specifications (`IN_PROGRESS` $\rightarrow$ `PENDING_VERIFICATION` $\rightarrow$ `VERIFIED` / `REJECTED` $\rightarrow$ `SEWING_STARTED`).
   * *Test Matrix Generation:* Prompted with strict edge-case matrices (e.g. negative integers, empty rejection notes, unauthorized role calls).
 
