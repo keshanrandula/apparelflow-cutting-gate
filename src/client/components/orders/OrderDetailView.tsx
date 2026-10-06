@@ -44,7 +44,7 @@ export const OrderDetailView: React.FC<{ orderId: string }> = ({ orderId }) => {
         <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-800">
           ⚠️ {error || 'Order not found'}
         </div>
-        <Link href="/" className="text-xs font-bold text-indigo-600 hover:underline">
+        <Link href="/" className="text-xs font-bold text-orange-600 hover:underline">
           ← Return to Dashboard
         </Link>
       </div>

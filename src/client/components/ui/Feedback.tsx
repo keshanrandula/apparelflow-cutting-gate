@@ -26,7 +26,7 @@ export const Spinner: React.FC<SpinnerProps> = ({
       className={`inline-flex items-center gap-2.5 ${className}`}
     >
       <div
-        className={`animate-spin rounded-full border-indigo-600 border-t-transparent ${sizeClasses[size]}`}
+        className={`animate-spin rounded-full border-orange-600 border-t-transparent ${sizeClasses[size]}`}
       />
       {label && <span className="text-xs font-semibold text-slate-700">{label}</span>}
       <span className="sr-only">{label}</span>

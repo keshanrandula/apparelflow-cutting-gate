@@ -326,15 +326,30 @@ export const VerificationDashboard: React.FC = () => {
             subtitle="Cut orders awaiting gatekeeper physical count"
           >
             {/* Quick Search */}
-            <div className="mb-3">
+            <div className="relative mb-3.5">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
               <input
                 type="text"
                 placeholder="Search order #, style, or roll..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full text-xs rounded-lg border border-slate-300 px-3 py-2 text-slate-900 bg-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
-                style={{ color: '#111827', backgroundColor: '#ffffff' }}
+                className="w-full text-xs rounded-xl border border-slate-200 pl-9 pr-8 py-2 text-slate-900 bg-slate-50/70 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition shadow-xs"
+                style={{ color: '#111827' }}
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-600 text-xs font-bold"
+                  aria-label="Clear search"
+                >
+                  ✕
+                </button>
+              )}
             </div>
 
             {pendingOrders.length === 0 ? (
@@ -530,7 +545,7 @@ export const VerificationDashboard: React.FC = () => {
                                   className={`w-28 text-center py-1.5 px-2 rounded-lg font-black text-sm border-2 shadow-xs transition ${
                                     isUncounted || status === 'RED'
                                       ? 'border-rose-400 bg-white text-rose-950 focus:border-rose-600 focus:ring-2 focus:ring-rose-500/20'
-                                      : 'border-slate-300 bg-white text-slate-950 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20'
+                                      : 'border-slate-300 bg-white text-slate-950 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20'
                                   }`}
                                   style={{ color: '#111827', backgroundColor: '#ffffff' }}
                                 />

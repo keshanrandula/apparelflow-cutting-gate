@@ -230,12 +230,12 @@ export const CuttingDashboard: React.FC = () => {
         subtitle="Manage and track order progress across the factory floor"
         action={
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-slate-600">Filter:</span>
+            <span className="text-xs font-bold text-slate-500">Filter:</span>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="text-xs font-bold py-1.5 px-3 rounded-lg border border-[#6b7280] bg-white text-[#111827]"
-              style={{ color: '#111827', backgroundColor: '#ffffff' }}
+              className="text-xs font-bold py-2 px-3 rounded-xl border border-slate-200 bg-slate-50/70 text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition shadow-xs cursor-pointer"
+              style={{ color: '#111827' }}
             >
               <option value="ALL">All Batches ({orders.length})</option>
               <option value="PENDING_VERIFICATION">Pending Verification</option>
@@ -293,7 +293,7 @@ export const CuttingDashboard: React.FC = () => {
               <tbody className="divide-y divide-slate-200 font-medium">
                 {filteredOrders.map((order) => (
                   <tr key={order.id} className="hover:bg-slate-50/80 transition">
-                    <td className="py-3.5 px-4 font-bold text-indigo-700">
+                    <td className="py-3.5 px-4 font-bold text-orange-700">
                       <Link href={`/orders/${order.id}`} className="hover:underline">
                         {order.orderNo}
                       </Link>
@@ -326,26 +326,28 @@ export const CuttingDashboard: React.FC = () => {
                     <td className="py-3.5 px-4 text-center text-slate-600 text-[11px]">
                       {new Date(order.createdAt).toLocaleDateString()}
                     </td>
-                    <td className="py-3.5 px-4 text-right space-x-2">
-                      {order.status === 'REJECTED' && (
-                        <Button
-                          variant="danger"
-                          size="sm"
-                          onClick={() => {
-                            setResubmitOrderTarget(order);
-                            setResubmitFabricStr(order.actualFabricYds.toString());
-                            setResubmitError(null);
-                          }}
+                    <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                      <div className="inline-flex items-center justify-end gap-2">
+                        {order.status === 'REJECTED' && (
+                          <Button
+                            variant="danger"
+                            size="sm"
+                            onClick={() => {
+                              setResubmitOrderTarget(order);
+                              setResubmitFabricStr(order.actualFabricYds.toString());
+                              setResubmitError(null);
+                            }}
+                          >
+                            Re-cut & Resubmit
+                          </Button>
+                        )}
+                        <Link
+                          href={`/orders/${order.id}`}
+                          className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-300 transition shadow-xs"
                         >
-                          Re-cut & Resubmit
-                        </Button>
-                      )}
-                      <Link
-                        href={`/orders/${order.id}`}
-                        className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-300 transition shadow-xs"
-                      >
-                        View Details
-                      </Link>
+                          View Details
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -441,7 +443,7 @@ export const CuttingDashboard: React.FC = () => {
                 ⚡ Live Bill-of-Materials (BOM) Preview
               </span>
               {liveQty > 0 && (
-                <span className="text-xs font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-200">
+                <span className="text-xs font-bold text-orange-700 bg-orange-50 px-2 py-0.5 rounded-md border border-orange-200">
                   Target: {liveQty} Units
                 </span>
               )}
@@ -475,7 +477,7 @@ export const CuttingDashboard: React.FC = () => {
                           <span className="text-slate-400 text-[11px]">
                             {comp.piecesPerGarment}x / unit
                           </span>
-                          <span className="font-extrabold text-indigo-800 bg-indigo-50 px-2 py-0.5 rounded-sm border border-indigo-200">
+                          <span className="font-extrabold text-orange-950 bg-orange-50 px-2 py-0.5 rounded-sm border border-orange-200">
                             {liveQty * comp.piecesPerGarment} pcs
                           </span>
                         </div>

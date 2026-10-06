@@ -28,7 +28,7 @@ export const Button: React.FC<ButtonProps> = ({
 
   const variantStyles = {
     primary:
-      'bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-indigo-500 border border-transparent active:bg-indigo-800 disabled:bg-indigo-300 disabled:text-white',
+      'bg-orange-600 text-white hover:bg-orange-700 focus:ring-orange-500 border border-transparent active:bg-orange-800 disabled:bg-orange-300 disabled:text-white shadow-sm hover:shadow transition-all',
     secondary:
       'bg-slate-100 text-slate-900 hover:bg-slate-200 focus:ring-slate-400 border border-slate-300 active:bg-slate-300 disabled:bg-slate-100 disabled:text-slate-400',
     danger:
@@ -36,7 +36,7 @@ export const Button: React.FC<ButtonProps> = ({
     success:
       'bg-emerald-600 text-white hover:bg-emerald-700 focus:ring-emerald-500 border border-transparent active:bg-emerald-800 disabled:bg-emerald-300 disabled:text-white',
     outline:
-      'bg-white text-slate-800 hover:bg-slate-50 focus:ring-indigo-500 border border-slate-400 active:bg-slate-100 disabled:bg-slate-50 disabled:text-slate-400 disabled:border-slate-200',
+      'bg-white text-slate-800 hover:bg-orange-50 hover:text-orange-900 hover:border-orange-300 focus:ring-orange-500 border border-slate-400 active:bg-orange-100 disabled:bg-slate-50 disabled:text-slate-400 disabled:border-slate-200',
   };
 
   const isDisabled = disabled || loading;

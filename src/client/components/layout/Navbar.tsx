@@ -13,26 +13,26 @@ export const Navbar: React.FC = () => {
   if (!user) return null;
 
   const roleLabels: Record<string, { title: string; badgeColor: string }> = {
-    cutting_supervisor: { title: 'Cutting Supervisor', badgeColor: 'bg-indigo-100 dark:bg-indigo-950/70 text-indigo-800 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800' },
+    cutting_supervisor: { title: 'Cutting Supervisor', badgeColor: 'bg-orange-100 dark:bg-orange-950/70 text-orange-800 dark:text-orange-300 border-orange-200 dark:border-orange-800' },
     cutting_verifier: { title: 'Cutting Verifier', badgeColor: 'bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800' },
-    sewing_supervisor: { title: 'Sewing Supervisor', badgeColor: 'bg-purple-100 dark:bg-purple-950/70 text-purple-800 dark:text-purple-300 border-purple-200 dark:border-purple-800' },
+    sewing_supervisor: { title: 'Sewing Supervisor', badgeColor: 'bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800' },
   };
 
   const currentRole = roleLabels[user.role] || { title: user.role, badgeColor: 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700' };
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs transition-colors">
+    <header className="sticky top-0 z-40 w-full border-b border-orange-100/80 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md shadow-xs transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Brand Logo & Station Title */}
           <div className="flex items-center gap-6">
             <Link href="/" className="flex items-center gap-3 group">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-600 text-white font-black text-lg shadow-sm">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-orange-600 to-amber-500 text-white font-black text-lg shadow-md shadow-orange-600/20 ring-2 ring-orange-100 dark:ring-orange-900/50">
                 AF
               </div>
               <div>
                 <span className="text-base font-extrabold tracking-tight text-slate-900 dark:text-white block leading-tight">
-                  ApparelFlow <span className="text-indigo-600 dark:text-indigo-400">ERP</span>
+                  ApparelFlow <span className="text-orange-600 dark:text-orange-500">ERP</span>
                 </span>
                 <span className="text-[10px] uppercase font-bold tracking-widest text-slate-500 dark:text-slate-400 block">
                   Cutting Gatekeeper Terminal
@@ -45,9 +45,9 @@ export const Navbar: React.FC = () => {
               {user.role === 'cutting_supervisor' && (
                 <Link
                   href="/cutting"
-                  className={`px-3 py-1.5 rounded-md text-xs font-semibold transition ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
                     pathname === '/cutting'
-                      ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800'
+                      ? 'bg-orange-50 dark:bg-orange-950/60 text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-orange-800 shadow-xs'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
                   }`}
                 >
@@ -58,9 +58,9 @@ export const Navbar: React.FC = () => {
               {user.role === 'cutting_verifier' && (
                 <Link
                   href="/verifier"
-                  className={`px-3 py-1.5 rounded-md text-xs font-semibold transition ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
                     pathname === '/verifier' || pathname === '/verification'
-                      ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                      ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 shadow-xs'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
                   }`}
                 >
@@ -71,9 +71,9 @@ export const Navbar: React.FC = () => {
               {user.role === 'sewing_supervisor' && (
                 <Link
                   href="/sewing"
-                  className={`px-3 py-1.5 rounded-md text-xs font-semibold transition ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
                     pathname === '/sewing'
-                      ? 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800'
+                      ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 shadow-xs'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
                   }`}
                 >

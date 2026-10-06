@@ -16,9 +16,9 @@ export const StatusBadge: React.FC<{ status: OrderStatus; size?: 'sm' | 'md' }> 
     IN_PROGRESS: {
       label: 'In Progress',
       icon: '⏳',
-      bg: 'bg-blue-50',
-      text: 'text-blue-900',
-      border: 'border-blue-300',
+      bg: 'bg-orange-50',
+      text: 'text-orange-950',
+      border: 'border-orange-300',
     },
     PENDING_VERIFICATION: {
       label: 'Pending Verification',
@@ -44,9 +44,9 @@ export const StatusBadge: React.FC<{ status: OrderStatus; size?: 'sm' | 'md' }> 
     SEWING_STARTED: {
       label: 'Sewing Started',
       icon: '🧵',
-      bg: 'bg-purple-50',
-      text: 'text-purple-900',
-      border: 'border-purple-300',
+      bg: 'bg-orange-100',
+      text: 'text-orange-950',
+      border: 'border-orange-400',
     },
   };
 

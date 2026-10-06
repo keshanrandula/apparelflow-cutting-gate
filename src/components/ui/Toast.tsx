@@ -52,9 +52,9 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       icon: '▲',
     },
     info: {
-      bg: 'bg-blue-50',
-      text: 'text-blue-950',
-      border: 'border-blue-300',
+      bg: 'bg-orange-50',
+      text: 'text-orange-950',
+      border: 'border-orange-300',
       icon: 'ℹ',
     },
   };
