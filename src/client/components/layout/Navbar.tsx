@@ -5,10 +5,18 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '../../hooks/useAuth';
 import { ThemeToggle } from '../ui/ThemeToggle';
+import { useToast } from '@/components/ui/Toast';
 
 export const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
+  const { showToast } = useToast();
   const pathname = usePathname();
+
+  const handleLogout = async () => {
+    showToast('Signing out...', 'info');
+    await logout();
+    showToast('Signed out successfully.', 'success');
+  };
 
   if (!user) return null;
 
@@ -89,20 +97,20 @@ export const Navbar: React.FC = () => {
           <div className="flex items-center gap-3">
             <ThemeToggle />
 
-            <div className="text-right hidden sm:block">
-              <div className="text-xs font-bold text-slate-900 dark:text-slate-100">{user.name}</div>
-              <div className="flex items-center justify-end gap-1.5 mt-0.5">
-                <span
-                  className={`inline-block px-2 py-0.5 text-[10px] font-bold rounded-full border uppercase tracking-wider ${currentRole.badgeColor}`}
-                >
-                  {currentRole.title}
-                </span>
-              </div>
+            <div className="hidden sm:flex flex-col items-end text-right">
+              <span className="text-xs font-bold text-slate-900 dark:text-slate-100 leading-tight">
+                {user.name}
+              </span>
+              <span
+                className={`mt-1 inline-flex items-center px-2.5 py-0.5 text-[10px] font-bold rounded-full border uppercase tracking-wider leading-normal shadow-2xs ${currentRole.badgeColor}`}
+              >
+                {currentRole.title}
+              </span>
             </div>
 
             <button
-              onClick={() => logout()}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-rose-700 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-rose-200 dark:hover:border-rose-800 transition shadow-xs"
+              onClick={handleLogout}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-rose-700 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-rose-200 dark:hover:border-rose-800 transition shadow-xs cursor-pointer"
               title="Sign Out"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

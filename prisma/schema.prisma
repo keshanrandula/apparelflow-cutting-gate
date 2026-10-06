@@ -69,6 +69,7 @@ model RecipeComponent {
   recipe            Recipe             @relation(fields: [recipeId], references: [id], onDelete: Cascade)
   componentName     String             // e.g., "Front Panel", "Back Panel", "Sleeve"
   piecesPerGarment  Int                // Quantity required per 1 garment
+  imageUrl          String?            // Visual reference pattern diagram / image
   verificationItems VerificationItem[]
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt

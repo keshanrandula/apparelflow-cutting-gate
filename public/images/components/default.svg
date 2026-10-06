@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <rect width="100" height="100" rx="16" fill="#F1F5F9"/>
+  <!-- Generic Cut Part / Pattern Block -->
+  <path d="M25 25 L75 25 L75 75 L25 75 Z" fill="#E2E8F0" stroke="#0F172A" stroke-width="2.5" stroke-linejoin="round"/>
+  <!-- Fabric Scissors / Cutting Icon -->
+  <circle cx="42" cy="45" r="5" stroke="#0F172A" stroke-width="2"/>
+  <circle cx="42" cy="55" r="5" stroke="#0F172A" stroke-width="2"/>
+  <line x1="46" y1="47" x2="62" y2="58" stroke="#0F172A" stroke-width="2.5"/>
+  <line x1="46" y1="53" x2="62" y2="42" stroke="#0F172A" stroke-width="2.5"/>
+</svg>

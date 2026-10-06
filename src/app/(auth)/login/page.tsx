@@ -4,9 +4,11 @@ import React, { useState } from 'react';
 import { useAuth } from '@/client/hooks/useAuth';
 import { Button } from '@/components/ui/Button';
 import { ThemeToggle } from '@/client/components/ui/ThemeToggle';
+import { useToast } from '@/components/ui/Toast';
 
 export default function LoginPage() {
   const { login } = useAuth();
+  const { showToast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -21,8 +23,11 @@ export default function LoginPage() {
 
     try {
       await login(email.trim(), password);
+      showToast('Login successful! Loading workspace...', 'success');
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Invalid credentials. Please verify your staff email and password.');
+      const msg = err instanceof Error ? err.message : 'Invalid credentials. Please verify your staff email and password.';
+      setError(msg);
+      showToast(msg, 'error');
     } finally {
       setLoading(false);
     }
@@ -291,8 +296,9 @@ export default function LoginPage() {
                   setEmail('supervisor@apparelflow.com');
                   setPassword('Supervisor@123');
                   setError(null);
+                  showToast('Loaded credentials for Cutting Supervisor (Nimal Perera)', 'info');
                 }}
-                className="p-2 rounded-xl border border-orange-200 bg-orange-50/60 hover:bg-orange-100 dark:bg-orange-950/20 text-left transition shadow-xs group"
+                className="p-2 rounded-xl border border-orange-200 bg-orange-50/60 hover:bg-orange-100 dark:bg-orange-950/20 text-left transition shadow-xs group cursor-pointer"
                 title="Fill Supervisor Credentials"
               >
                 <span className="text-[10px] font-extrabold text-orange-950 dark:text-orange-200 block truncate">
@@ -309,8 +315,9 @@ export default function LoginPage() {
                   setEmail('verifier@apparelflow.com');
                   setPassword('Verifier@123');
                   setError(null);
+                  showToast('Loaded credentials for QC Verifier (Kamala Silva)', 'info');
                 }}
-                className="p-2 rounded-xl border border-emerald-200 bg-emerald-50/60 hover:bg-emerald-100 dark:bg-emerald-950/20 text-left transition shadow-xs group"
+                className="p-2 rounded-xl border border-emerald-200 bg-emerald-50/60 hover:bg-emerald-100 dark:bg-emerald-950/20 text-left transition shadow-xs group cursor-pointer"
                 title="Fill Verifier Credentials"
               >
                 <span className="text-[10px] font-extrabold text-emerald-950 dark:text-emerald-200 block truncate">
@@ -327,8 +334,9 @@ export default function LoginPage() {
                   setEmail('sewing@apparelflow.com');
                   setPassword('Sewing@123');
                   setError(null);
+                  showToast('Loaded credentials for Sewing Lead (Sunil Fernando)', 'info');
                 }}
-                className="p-2 rounded-xl border border-amber-300 bg-amber-50/60 hover:bg-amber-100 dark:bg-amber-950/20 text-left transition shadow-xs group"
+                className="p-2 rounded-xl border border-amber-300 bg-amber-50/60 hover:bg-amber-100 dark:bg-amber-950/20 text-left transition shadow-xs group cursor-pointer"
                 title="Fill Sewing Supervisor Credentials"
               >
                 <span className="text-[10px] font-extrabold text-amber-950 dark:text-amber-200 block truncate">

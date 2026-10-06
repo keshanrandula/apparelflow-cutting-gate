@@ -25,37 +25,44 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 4000);
+    }, 4500);
   }, []);
 
   const removeToast = (id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
-  const typeStyles: Record<ToastType, { bg: string; text: string; border: string; icon: string }> = {
+  const typeConfig: Record<
+    ToastType,
+    { bg: string; text: string; border: string; icon: string; iconBg: string }
+  > = {
     success: {
-      bg: 'bg-emerald-50',
-      text: 'text-emerald-950',
-      border: 'border-emerald-300',
+      bg: 'bg-white/95 dark:bg-slate-900/95',
+      text: 'text-emerald-950 dark:text-emerald-100',
+      border: 'border-emerald-500/40 dark:border-emerald-500/30',
       icon: '✓',
+      iconBg: 'bg-emerald-500 text-white shadow-sm shadow-emerald-500/30',
     },
     error: {
-      bg: 'bg-rose-50',
-      text: 'text-rose-950',
-      border: 'border-rose-300',
-      icon: '⚠',
+      bg: 'bg-white/95 dark:bg-slate-900/95',
+      text: 'text-rose-950 dark:text-rose-100',
+      border: 'border-rose-500/40 dark:border-rose-500/30',
+      icon: '✕',
+      iconBg: 'bg-rose-500 text-white shadow-sm shadow-rose-500/30',
     },
     warning: {
-      bg: 'bg-amber-50',
-      text: 'text-amber-950',
-      border: 'border-amber-300',
-      icon: '▲',
+      bg: 'bg-white/95 dark:bg-slate-900/95',
+      text: 'text-amber-950 dark:text-amber-100',
+      border: 'border-amber-500/40 dark:border-amber-500/30',
+      icon: '!',
+      iconBg: 'bg-amber-500 text-white shadow-sm shadow-amber-500/30',
     },
     info: {
-      bg: 'bg-orange-50',
-      text: 'text-orange-950',
-      border: 'border-orange-300',
+      bg: 'bg-white/95 dark:bg-slate-900/95',
+      text: 'text-orange-950 dark:text-orange-100',
+      border: 'border-orange-500/40 dark:border-orange-500/30',
       icon: 'ℹ',
+      iconBg: 'bg-orange-500 text-white shadow-sm shadow-orange-500/30',
     },
   };
 
@@ -63,25 +70,29 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     <ToastContext.Provider value={{ showToast }}>
       {children}
       <div
-        className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none"
+        className="fixed bottom-5 right-5 z-50 flex flex-col gap-2.5 max-w-md w-full pointer-events-none px-4 sm:px-0"
         aria-live="polite"
         aria-atomic="true"
       >
         {toasts.map((toast) => {
-          const style = typeStyles[toast.type];
+          const cfg = typeConfig[toast.type];
           return (
             <div
               key={toast.id}
               role="alert"
-              className={`pointer-events-auto flex items-center justify-between p-3.5 rounded-xl border shadow-lg ${style.bg} ${style.text} ${style.border} animate-in slide-in-from-bottom-2 duration-150`}
+              className={`pointer-events-auto flex items-center justify-between gap-3 p-3.5 rounded-2xl border backdrop-blur-md shadow-xl ${cfg.bg} ${cfg.text} ${cfg.border} transition-all duration-300 animate-in slide-in-from-bottom-3 fade-in`}
             >
-              <div className="flex items-center gap-2.5 text-xs font-bold">
-                <span className="text-sm font-black">{style.icon}</span>
-                <span>{toast.message}</span>
+              <div className="flex items-center gap-3">
+                <span
+                  className={`flex items-center justify-center h-6 w-6 rounded-full text-xs font-black shrink-0 ${cfg.iconBg}`}
+                >
+                  {cfg.icon}
+                </span>
+                <span className="text-xs font-semibold leading-snug">{toast.message}</span>
               </div>
               <button
                 onClick={() => removeToast(toast.id)}
-                className="ml-3 text-slate-500 hover:text-slate-800 p-1"
+                className="shrink-0 p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
                 aria-label="Dismiss toast"
               >
                 ✕

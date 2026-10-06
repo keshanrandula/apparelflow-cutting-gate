@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <rect width="100" height="100" rx="16" fill="#F1F5F9"/>
+  <!-- Back Support Panel Silhouette -->
+  <path d="M30 32 L40 28 Q50 31 60 28 L70 32 L74 54 L66 62 L34 62 L26 54 Z" fill="#E2E8F0" stroke="#0F172A" stroke-width="2.5" stroke-linejoin="round"/>
+  <!-- Racerback / Spine Seam line -->
+  <line x1="50" y1="29" x2="50" y2="62" stroke="#475569" stroke-width="1.5" stroke-dasharray="3 2"/>
+  <!-- Grainline -->
+  <path d="M50 38 L50 54 M48 41 L50 38 L52 41" stroke="#64748B" stroke-width="1.2"/>
+</svg>

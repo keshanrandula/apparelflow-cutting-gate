@@ -22,6 +22,7 @@ export interface RecipeComponent {
   recipeId: string;
   componentName: string;
   piecesPerGarment: number;
+  imageUrl?: string | null;
 }
 
 export interface Recipe {

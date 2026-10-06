@@ -7,24 +7,31 @@ import { CuttingOrder } from '../../types';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { StatusBadge, TrafficBadge } from '../ui/Badges';
+import { useToast } from '@/components/ui/Toast';
 
 export const OrderDetailView: React.FC<{ orderId: string }> = ({ orderId }) => {
+  const { showToast } = useToast();
   const [order, setOrder] = useState<CuttingOrder | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchOrderDetail = useCallback(async () => {
+  const fetchOrderDetail = useCallback(async (isManualRefresh = false) => {
     try {
       setLoading(true);
       setError(null);
       const data = await api.orders.get(orderId);
       setOrder(data);
+      if (isManualRefresh) {
+        showToast(`Order details for ${data.orderNo} refreshed`, 'info');
+      }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to load order details');
+      const msg = err instanceof Error ? err.message : 'Failed to load order details';
+      setError(msg);
+      showToast(msg, 'error');
     } finally {
       setLoading(false);
     }
-  }, [orderId]);
+  }, [orderId, showToast]);
 
   useEffect(() => {
     fetchOrderDetail();
@@ -71,7 +78,7 @@ export const OrderDetailView: React.FC<{ orderId: string }> = ({ orderId }) => {
         </div>
 
         <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm" onClick={fetchOrderDetail}>
+          <Button variant="outline" size="sm" onClick={() => fetchOrderDetail(true)}>
             ↻ Refresh
           </Button>
         </div>
@@ -144,8 +151,22 @@ export const OrderDetailView: React.FC<{ orderId: string }> = ({ orderId }) => {
             <tbody className="divide-y divide-slate-100 font-medium">
               {order.items?.map((item) => (
                 <tr key={item.id} className="hover:bg-slate-50/80 transition">
-                  <td className="py-3 px-4 font-bold text-slate-900">
-                    {item.component.componentName}
+                  <td className="py-3 px-4">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 p-1 flex-shrink-0 flex items-center justify-center overflow-hidden">
+                        <img
+                          src={item.component.imageUrl || '/images/components/default.svg'}
+                          alt={item.component.componentName}
+                          className="w-full h-full object-contain"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).src = '/images/components/default.svg';
+                          }}
+                        />
+                      </div>
+                      <span className="font-bold text-slate-900">
+                        {item.component.componentName}
+                      </span>
+                    </div>
                   </td>
                   <td className="py-3 px-4 text-center text-slate-500">
                     {item.component.piecesPerGarment}x

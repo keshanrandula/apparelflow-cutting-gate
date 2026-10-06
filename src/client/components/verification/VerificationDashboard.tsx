@@ -76,6 +76,7 @@ export const VerificationDashboard: React.FC = () => {
       inputs[item.componentId] = item.actualQty.toString();
     });
     setCountsInputState(inputs);
+    showToast(`Loaded order ${order.orderNo} for physical count verification`, 'info');
   };
 
   const handleCountChange = (componentId: string, val: string) => {
@@ -284,7 +285,10 @@ export const VerificationDashboard: React.FC = () => {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => refreshOrders()}
+          onClick={async () => {
+            await refreshOrders();
+            showToast('Verification queue refreshed', 'info');
+          }}
           loading={loading}
           className="self-start sm:self-auto"
         >
@@ -522,9 +526,26 @@ export const VerificationDashboard: React.FC = () => {
                             }`}
                           >
                             <td className="py-3.5 px-4">
-                              <span className="font-extrabold text-slate-900 block text-xs">
-                                {item.component.componentName}
-                              </span>
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 p-1 flex-shrink-0 flex items-center justify-center overflow-hidden shadow-xs">
+                                  <img
+                                    src={item.component.imageUrl || '/images/components/default.svg'}
+                                    alt={item.component.componentName}
+                                    className="w-full h-full object-contain"
+                                    onError={(e) => {
+                                      (e.currentTarget as HTMLImageElement).src = '/images/components/default.svg';
+                                    }}
+                                  />
+                                </div>
+                                <div>
+                                  <span className="font-extrabold text-slate-900 block text-xs">
+                                    {item.component.componentName}
+                                  </span>
+                                  <span className="text-[10px] text-slate-500 font-medium">
+                                    Pattern Part
+                                  </span>
+                                </div>
+                              </div>
                             </td>
                             <td className="py-3.5 px-4 text-center text-slate-600 font-semibold">
                               {item.component.piecesPerGarment}x / garment

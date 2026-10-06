@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <rect width="100" height="100" rx="16" fill="#F1F5F9"/>
+  <!-- Curved Neck Binding Strip -->
+  <path d="M15 42 Q50 28 85 42 L83 54 Q50 40 17 54 Z" fill="#E2E8F0" stroke="#0F172A" stroke-width="2.5" stroke-linejoin="round"/>
+  <!-- Bias Fold Indicators -->
+  <line x1="30" y1="41" x2="33" y2="49" stroke="#475569" stroke-width="1.5"/>
+  <line x1="50" y1="36" x2="50" y2="45" stroke="#475569" stroke-width="1.5"/>
+  <line x1="70" y1="41" x2="67" y2="49" stroke="#475569" stroke-width="1.5"/>
+  <!-- 45-degree Bias Grain Arrow -->
+  <path d="M42 66 L58 74 M44 64 L42 66 L46 68" stroke="#64748B" stroke-width="1.2"/>
+</svg>

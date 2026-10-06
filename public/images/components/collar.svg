@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <rect width="100" height="100" rx="16" fill="#F1F5F9"/>
+  <!-- Collar Leaf -->
+  <path d="M15 35 Q50 42 85 35 L80 50 Q50 56 20 50 Z" fill="#E2E8F0" stroke="#0F172A" stroke-width="2.5" stroke-linejoin="round"/>
+  <!-- Collar Stand -->
+  <path d="M18 56 Q50 62 82 56 L80 68 Q50 74 20 68 Z" fill="#CBD5E1" stroke="#0F172A" stroke-width="2.5" stroke-linejoin="round"/>
+  <!-- Stitching Detail Line -->
+  <path d="M22 39 Q50 45 78 39" stroke="#475569" stroke-width="1.2" stroke-dasharray="2 2"/>
+</svg>

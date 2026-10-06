@@ -79,11 +79,11 @@ async function main() {
   });
 
   const blouseComponentsData = [
-    { componentName: 'Front Body Panel', piecesPerGarment: 1 },
-    { componentName: 'Back Body Panel', piecesPerGarment: 1 },
-    { componentName: 'Sleeves (Left & Right)', piecesPerGarment: 2 },
-    { componentName: 'Collar & Stand', piecesPerGarment: 1 },
-    { componentName: 'Sleeve Cuffs', piecesPerGarment: 2 },
+    { componentName: 'Front Body Panel', piecesPerGarment: 1, imageUrl: '/images/components/front-body.svg' },
+    { componentName: 'Back Body Panel', piecesPerGarment: 1, imageUrl: '/images/components/back-body.svg' },
+    { componentName: 'Sleeves (Left & Right)', piecesPerGarment: 2, imageUrl: '/images/components/sleeves.svg' },
+    { componentName: 'Collar & Stand', piecesPerGarment: 1, imageUrl: '/images/components/collar.svg' },
+    { componentName: 'Sleeve Cuffs', piecesPerGarment: 2, imageUrl: '/images/components/cuffs.svg' },
   ];
 
   const blouseComponents = [];
@@ -98,7 +98,10 @@ async function main() {
     if (existing) {
       const updated = await prisma.recipeComponent.update({
         where: { id: existing.id },
-        data: { piecesPerGarment: comp.piecesPerGarment },
+        data: {
+          piecesPerGarment: comp.piecesPerGarment,
+          imageUrl: comp.imageUrl,
+        },
       });
       blouseComponents.push(updated);
     } else {
@@ -107,6 +110,7 @@ async function main() {
           recipeId: recipeBlouse.id,
           componentName: comp.componentName,
           piecesPerGarment: comp.piecesPerGarment,
+          imageUrl: comp.imageUrl,
         },
       });
       blouseComponents.push(created);
@@ -130,11 +134,11 @@ async function main() {
   });
 
   const cropTopComponentsData = [
-    { componentName: 'Front Chest Panel', piecesPerGarment: 1 },
-    { componentName: 'Back Support Panel', piecesPerGarment: 1 },
-    { componentName: 'Neck Binding Strip', piecesPerGarment: 1 },
-    { componentName: 'Hem Elastic Casing', piecesPerGarment: 1 },
-    { componentName: 'Side Strap Accents', piecesPerGarment: 2 },
+    { componentName: 'Front Chest Panel', piecesPerGarment: 1, imageUrl: '/images/components/front-chest.svg' },
+    { componentName: 'Back Support Panel', piecesPerGarment: 1, imageUrl: '/images/components/back-support.svg' },
+    { componentName: 'Neck Binding Strip', piecesPerGarment: 1, imageUrl: '/images/components/neck-binding.svg' },
+    { componentName: 'Hem Elastic Casing', piecesPerGarment: 1, imageUrl: '/images/components/hem-elastic.svg' },
+    { componentName: 'Side Strap Accents', piecesPerGarment: 2, imageUrl: '/images/components/side-straps.svg' },
   ];
 
   const cropTopComponents = [];
@@ -149,7 +153,10 @@ async function main() {
     if (existing) {
       const updated = await prisma.recipeComponent.update({
         where: { id: existing.id },
-        data: { piecesPerGarment: comp.piecesPerGarment },
+        data: {
+          piecesPerGarment: comp.piecesPerGarment,
+          imageUrl: comp.imageUrl,
+        },
       });
       cropTopComponents.push(updated);
     } else {
@@ -158,6 +165,7 @@ async function main() {
           recipeId: recipeCropTop.id,
           componentName: comp.componentName,
           piecesPerGarment: comp.piecesPerGarment,
+          imageUrl: comp.imageUrl,
         },
       });
       cropTopComponents.push(created);

@@ -202,7 +202,15 @@ export const CuttingDashboard: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm" onClick={() => refreshOrders()} loading={loading}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={async () => {
+              await refreshOrders();
+              showToast('Cutting orders list refreshed', 'info');
+            }}
+            loading={loading}
+          >
             ↻ Refresh Orders
           </Button>
           <Button
@@ -233,7 +241,11 @@ export const CuttingDashboard: React.FC = () => {
             <span className="text-xs font-bold text-slate-500">Filter:</span>
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                const label = e.target.value === 'ALL' ? 'All Batches' : e.target.value.replace(/_/g, ' ');
+                showToast(`Filter applied: ${label}`, 'info');
+              }}
               className="text-xs font-bold py-2 px-3 rounded-xl border border-slate-200 bg-slate-50/70 text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition shadow-xs cursor-pointer"
               style={{ color: '#111827' }}
             >

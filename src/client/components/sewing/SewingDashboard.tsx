@@ -115,7 +115,10 @@ export const SewingDashboard: React.FC = () => {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => fetchQueue()}
+          onClick={async () => {
+            await fetchQueue();
+            showToast('Sewing floor queue refreshed', 'info');
+          }}
           loading={loading}
           className="self-start sm:self-auto"
         >
@@ -141,11 +144,15 @@ export const SewingDashboard: React.FC = () => {
         <div
           role="button"
           tabIndex={0}
-          onClick={() => setActiveTab('READY')}
+          onClick={() => {
+            setActiveTab('READY');
+            showToast('Switched to Ready for Sewing Queue', 'info');
+          }}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
               e.preventDefault();
               setActiveTab('READY');
+              showToast('Switched to Ready for Sewing Queue', 'info');
             }
           }}
           className={`cursor-pointer rounded-2xl p-5 border-2 transition-all text-left ${
@@ -171,11 +178,15 @@ export const SewingDashboard: React.FC = () => {
         <div
           role="button"
           tabIndex={0}
-          onClick={() => setActiveTab('IN_ASSEMBLY')}
+          onClick={() => {
+            setActiveTab('IN_ASSEMBLY');
+            showToast('Switched to Active Assembly Floor', 'info');
+          }}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
               e.preventDefault();
               setActiveTab('IN_ASSEMBLY');
+              showToast('Switched to Active Assembly Floor', 'info');
             }
           }}
           className={`cursor-pointer rounded-2xl p-5 border-2 transition-all text-left ${
