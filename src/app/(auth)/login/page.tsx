@@ -269,8 +269,76 @@ export default function LoginPage() {
             </div>
           </form>
 
+          {/* Evaluator Quick Role Switcher (Required by Section 5 of Webtezza Assessment) */}
+          <div className="pt-5 border-t border-slate-200 dark:border-slate-800 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                <span>⚡</span> Evaluator Role Switcher
+              </span>
+              <span className="text-[10px] text-orange-600 dark:text-orange-400 font-bold bg-orange-50 dark:bg-orange-950/60 px-2 py-0.5 rounded-md">
+                1-Click Audit Access
+              </span>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail('supervisor@apparelflow.com');
+                  setPassword('Supervisor@123');
+                  setError(null);
+                }}
+                className="p-2 rounded-xl border border-orange-200 bg-orange-50/60 hover:bg-orange-100 dark:bg-orange-950/20 text-left transition shadow-xs group"
+                title="Fill Supervisor Credentials"
+              >
+                <span className="text-[10px] font-extrabold text-orange-950 dark:text-orange-200 block truncate">
+                  Supervisor
+                </span>
+                <span className="text-[9px] text-orange-700 dark:text-orange-400 block truncate">
+                  Nimal Perera
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail('verifier@apparelflow.com');
+                  setPassword('Verifier@123');
+                  setError(null);
+                }}
+                className="p-2 rounded-xl border border-emerald-200 bg-emerald-50/60 hover:bg-emerald-100 dark:bg-emerald-950/20 text-left transition shadow-xs group"
+                title="Fill Verifier Credentials"
+              >
+                <span className="text-[10px] font-extrabold text-emerald-950 dark:text-emerald-200 block truncate">
+                  QC Verifier
+                </span>
+                <span className="text-[9px] text-emerald-700 dark:text-emerald-400 block truncate">
+                  Kamala Silva
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail('sewing@apparelflow.com');
+                  setPassword('Sewing@123');
+                  setError(null);
+                }}
+                className="p-2 rounded-xl border border-amber-300 bg-amber-50/60 hover:bg-amber-100 dark:bg-amber-950/20 text-left transition shadow-xs group"
+                title="Fill Sewing Supervisor Credentials"
+              >
+                <span className="text-[10px] font-extrabold text-amber-950 dark:text-amber-200 block truncate">
+                  Sewing Lead
+                </span>
+                <span className="text-[9px] text-amber-700 dark:text-amber-400 block truncate">
+                  Sunil Fernando
+                </span>
+              </button>
+            </div>
+          </div>
+
           {/* Enterprise Security Footer */}
-          <div className="pt-6 border-t border-slate-200 dark:border-slate-800 text-center space-y-2">
+          <div className="pt-4 border-t border-slate-200 dark:border-slate-800 text-center space-y-1.5">
             <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium flex items-center justify-center gap-1.5">
               <span>🔒</span> 256-bit Encrypted Session • Authorized Personnel Only
             </p>
