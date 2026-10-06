@@ -44,9 +44,11 @@ export default function LoginPage() {
         {/* Brand Header */}
         <div className="relative z-10">
           <div className="flex items-center gap-3.5">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-tr from-orange-600 to-amber-500 text-white font-black text-2xl shadow-lg shadow-orange-600/30 ring-2 ring-orange-400/30">
-              AF
-            </div>
+            <img
+              src="/logo.png"
+              alt="ApparelFlow Logo"
+              className="h-12 w-12 rounded-2xl object-cover ring-2 ring-orange-500/40 shadow-xl shadow-orange-600/30"
+            />
             <div>
               <span className="text-xl font-black tracking-tight text-white block leading-tight">
                 ApparelFlow <span className="text-orange-500">ERP</span>
@@ -128,9 +130,11 @@ export default function LoginPage() {
         <div className="w-full max-w-md space-y-8">
           {/* Mobile Header (Shown only on small screens) */}
           <div className="lg:hidden text-center space-y-2 mb-6">
-            <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-tr from-orange-600 to-amber-500 text-white font-black text-xl shadow-lg shadow-orange-500/30">
-              AF
-            </div>
+            <img
+              src="/logo.png"
+              alt="ApparelFlow Logo"
+              className="inline-flex h-14 w-14 rounded-2xl object-cover ring-4 ring-orange-100 dark:ring-orange-950/50 shadow-xl shadow-orange-500/30"
+            />
             <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
               ApparelFlow <span className="text-orange-600">ERP</span>
             </h1>

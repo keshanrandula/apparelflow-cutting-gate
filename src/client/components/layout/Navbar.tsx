@@ -27,9 +27,11 @@ export const Navbar: React.FC = () => {
           {/* Brand Logo & Station Title */}
           <div className="flex items-center gap-6">
             <Link href="/" className="flex items-center gap-3 group">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-orange-600 to-amber-500 text-white font-black text-lg shadow-md shadow-orange-600/20 ring-2 ring-orange-100 dark:ring-orange-900/50">
-                AF
-              </div>
+              <img
+                src="/logo.png"
+                alt="ApparelFlow Logo"
+                className="h-9 w-9 rounded-xl object-cover ring-2 ring-orange-200 dark:ring-orange-900/50 shadow-md shadow-orange-600/15"
+              />
               <div>
                 <span className="text-base font-extrabold tracking-tight text-slate-900 dark:text-white block leading-tight">
                   ApparelFlow <span className="text-orange-600 dark:text-orange-500">ERP</span>
