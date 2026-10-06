@@ -170,7 +170,13 @@ export async function approveOrder(
 
   // 3 & 4. Recompute every component status on the server and check for failures
   const failedComponents: string[] = [];
-  const countMap = new Map(counts.map((c) => [c.componentId, c.actualQty]));
+  const countMap = new Map<string, number>();
+
+  if (counts && counts.length > 0) {
+    counts.forEach((c) => countMap.set(c.componentId, c.actualQty));
+  } else {
+    order.items.forEach((item) => countMap.set(item.componentId, item.actualQty));
+  }
 
   for (const comp of order.recipe.components) {
     const expectedQty = order.targetQty * comp.piecesPerGarment;

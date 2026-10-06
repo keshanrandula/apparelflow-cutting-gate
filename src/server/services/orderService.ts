@@ -44,6 +44,11 @@ async function generateOrderNumber(): Promise<string> {
  */
 export async function getAllRecipes() {
   return prisma.recipe.findMany({
+    where: {
+      components: {
+        some: {},
+      },
+    },
     include: {
       components: {
         orderBy: { componentName: 'asc' },

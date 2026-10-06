@@ -5,13 +5,13 @@ import Link from 'next/link';
 import { useOrders } from '../../hooks/useOrders';
 import { api } from '../../api/client';
 import { CuttingOrder, OrderStatus, Recipe } from '../../types';
-import { Card, Modal } from '@/components/ui';
-import { Input } from '@/components/ui/Input';
-import { Select } from '@/components/ui/Select';
-import { Button } from '@/components/ui/Button';
-import { StatusBadge } from '@/components/ui/Badges';
-import { EmptyState } from '@/components/ui/Feedback';
-import { useToast } from '@/components/ui/Toast';
+import { Card, Modal } from '../ui';
+import { Input } from '../ui/Input';
+import { Select } from '../ui/Select';
+import { Button } from '../ui/Button';
+import { StatusBadge } from '../ui/Badges';
+import { EmptyState } from '../ui/Feedback';
+import { useToast } from '../ui/Toast';
 
 export const CuttingDashboard: React.FC = () => {
   const { orders, recipes, loading, error, createOrder, resubmitOrder, refreshOrders } =

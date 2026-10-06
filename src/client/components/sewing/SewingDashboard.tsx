@@ -6,7 +6,7 @@ import { CuttingOrder } from '../../types';
 import { Card, Modal } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { StatusBadge, TrafficBadge } from '../ui/Badges';
-import { useToast } from '@/components/ui/Toast';
+import { useToast } from '../ui/Toast';
 
 export const SewingDashboard: React.FC = () => {
   const { showToast } = useToast();
@@ -230,7 +230,7 @@ export const SewingDashboard: React.FC = () => {
             </div>
             <input
               type="text"
-              placeholder="Search batch #, style, or roll..."
+              placeholder="Search by Batch No, Style, or Fabric Roll..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full text-xs rounded-xl border border-slate-200 pl-9 pr-8 py-2 text-slate-900 bg-slate-50/70 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition shadow-xs"
@@ -260,7 +260,7 @@ export const SewingDashboard: React.FC = () => {
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-100 text-slate-700 uppercase font-bold text-[11px] tracking-wider border-b border-slate-300">
                 <tr>
-                  <th className="py-3 px-4">Order Batch #</th>
+                  <th className="py-3 px-4">Order Batch No</th>
                   <th className="py-3 px-4">Style & Recipe</th>
                   <th className="py-3 px-4 text-center">Target Units</th>
                   <th className="py-3 px-4 text-center">Fabric Wastage %</th>
@@ -491,7 +491,19 @@ export const SewingDashboard: React.FC = () => {
                       return (
                         <tr key={item.id} className="hover:bg-slate-50">
                           <td className="py-2.5 px-3 font-bold text-slate-900">
-                            {item.component?.componentName}
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 p-0.5 flex-shrink-0 flex items-center justify-center overflow-hidden">
+                                <img
+                                  src={item.component?.imageUrl || '/images/components/default.svg'}
+                                  alt={item.component?.componentName}
+                                  className="w-full h-full object-contain"
+                                  onError={(e) => {
+                                    (e.currentTarget as HTMLImageElement).src = '/images/components/default.svg';
+                                  }}
+                                />
+                              </div>
+                              <span>{item.component?.componentName}</span>
+                            </div>
                           </td>
                           <td className="py-2.5 px-3 text-center text-slate-500">
                             {item.component?.piecesPerGarment}x / garment
@@ -574,7 +586,7 @@ export const SewingDashboard: React.FC = () => {
               <textarea
                 id="lineNotes"
                 rows={3}
-                placeholder="e.g. Assigned to Sewing Line #4; Operator Lead: Kamala; Needle Size 14."
+                placeholder="e.g. Assigned to Sewing Line 4; Lead: Sewing Supervisor; Needle Size 14."
                 value={lineNotes}
                 onChange={(e) => setLineNotes(e.target.value)}
                 className="w-full rounded-xl bg-white p-3 text-sm text-[#111827] border border-slate-300 shadow-xs focus:border-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-500/20"

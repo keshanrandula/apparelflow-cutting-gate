@@ -131,10 +131,15 @@ export const api = {
         method: 'PUT',
         body: JSON.stringify({ counts }),
       }),
-    verify: (id: string, decision: Decision, rejectionNote?: string) =>
+    verify: (
+      id: string,
+      decision: Decision,
+      rejectionNote?: string,
+      counts?: Array<{ componentId: string; actualQty: number }>
+    ) =>
       fetchJson<CuttingOrder>(`/api/orders/${id}/verify`, {
         method: 'POST',
-        body: JSON.stringify({ decision, rejectionNote }),
+        body: JSON.stringify({ decision, rejectionNote, counts }),
       }),
     startSewing: (id: string, notes?: string) =>
       fetchJson<{ order: CuttingOrder; sewingJob: unknown }>(`/api/orders/${id}/sewing-start`, {

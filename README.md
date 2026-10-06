@@ -6,7 +6,7 @@
 
 ---
 
-## 🌟 Key Architecture & Highlights
+## Key Architecture & Highlights
 
 - **Clean Layered Architecture (Client vs Server Separation):**
   - `src/server/`: Encapsulates business services, database operations (Prisma + PostgreSQL), pure domain calculations, Zod validation, and RBAC guards.
@@ -31,7 +31,7 @@
 
 ---
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 | Layer | Technologies |
 | :--- | :--- |
@@ -44,7 +44,7 @@
 
 ---
 
-## ⚡ Quick Start & Setup
+## Quick Start & Setup
 
 ### 1. Clone the Repository
 ```bash
@@ -88,21 +88,21 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
-## 👥 Demo Logins for Instant Testing
+## Demo Accounts for Evaluation
 
-The database seed includes 3 pre-configured user accounts and 3 test scenarios (all-green approval, shortage scenario, active batch):
+The database seed includes 3 pre-configured user accounts covering the factory personas and test workflows:
 
-| Role | Email | Password | Assigned Name |
+| Role | Email | Password | Designation |
 | :--- | :--- | :--- | :--- |
-| **Cutting Supervisor** | `supervisor@apparelflow.com` | `Supervisor@123` | Nimal Perera |
-| **Cutting Verifier** | `verifier@apparelflow.com` | `Verifier@123` | Kamala Silva |
-| **Sewing Supervisor** | `sewing@apparelflow.com` | `Sewing@123` | Sunil Fernando |
+| **Cutting Supervisor** | `supervisor@apparelflow.com` | `Supervisor@123` | Cutting Supervisor |
+| **QC Gatekeeper** | `verifier@apparelflow.com` | `Verifier@123` | QC Gatekeeper |
+| **Sewing Supervisor** | `sewing@apparelflow.com` | `Sewing@123` | Sewing Supervisor |
 
-*(Note: The login page includes 1-click Quick Login demo buttons for evaluator testing).*
+*(Note: The login page includes a 1-click Quick Login role switcher for instant evaluation).*
 
 ---
 
-## 📁 Directory Structure
+## Directory Structure
 
 ```
 ├── prisma/                          # Prisma ORM schema, migrations, & seed
@@ -137,5 +137,5 @@ The database seed includes 3 pre-configured user accounts and 3 test scenarios (
 
 ---
 
-## 📄 License
+## License
 This project is licensed under the MIT License.

@@ -6,7 +6,7 @@ import { CuttingOrder, ItemStatus } from '../../types';
 import { Card, Modal } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { StatusBadge, TrafficBadge } from '../ui/Badges';
-import { useToast } from '@/components/ui/Toast';
+import { useToast } from '../ui/Toast';
 
 export const VerificationDashboard: React.FC = () => {
   const { orders, loading, error, saveCounts, verifyOrder, refreshOrders } = useOrders();
@@ -213,8 +213,8 @@ export const VerificationDashboard: React.FC = () => {
       // 1. Save counts first
       await saveCounts(selectedOrder.id, payload);
 
-      // 2. Perform strict server-side gatekeeper approval
-      await verifyOrder(selectedOrder.id, 'APPROVED');
+      // 2. Perform strict server-side gatekeeper approval with counts
+      await verifyOrder(selectedOrder.id, 'APPROVED', undefined, payload);
       showToast(`Order ${selectedOrder.orderNo} successfully VERIFIED and released to Sewing!`, 'success');
       await refreshOrders();
     } catch (err: unknown) {
@@ -338,7 +338,7 @@ export const VerificationDashboard: React.FC = () => {
               </div>
               <input
                 type="text"
-                placeholder="Search order #, style, or roll..."
+                placeholder="Search by Order No, Style, or Fabric Roll..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full text-xs rounded-xl border border-slate-200 pl-9 pr-8 py-2 text-slate-900 bg-slate-50/70 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition shadow-xs"

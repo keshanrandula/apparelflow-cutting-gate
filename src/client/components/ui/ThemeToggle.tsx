@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { useToast } from '@/components/ui/Toast';
+import { useToast } from './Toast';
 
 export const ThemeToggle: React.FC<{ className?: string }> = ({ className = '' }) => {
   const { theme, toggleTheme } = useTheme();

@@ -61,8 +61,13 @@ export function useOrders() {
     return updated;
   };
 
-  const verifyOrder = async (orderId: string, decision: Decision, rejectionNote?: string) => {
-    const updated = await api.orders.verify(orderId, decision, rejectionNote);
+  const verifyOrder = async (
+    orderId: string,
+    decision: Decision,
+    rejectionNote?: string,
+    counts?: Array<{ componentId: string; actualQty: number }>
+  ) => {
+    const updated = await api.orders.verify(orderId, decision, rejectionNote, counts);
     setOrders((prev) => prev.map((o) => (o.id === orderId ? updated : o)));
     return updated;
   };

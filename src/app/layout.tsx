@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { Inter, Plus_Jakarta_Sans } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/client/hooks/useAuth';
-import { ToastProvider } from '@/components/ui/Toast';
+import { ToastProvider } from '@/client/components/ui/Toast';
 import { ThemeProvider } from '@/client/hooks/useTheme';
 
 const fontSans = Plus_Jakarta_Sans({

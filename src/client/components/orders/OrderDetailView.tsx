@@ -7,7 +7,7 @@ import { CuttingOrder } from '../../types';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { StatusBadge, TrafficBadge } from '../ui/Badges';
-import { useToast } from '@/components/ui/Toast';
+import { useToast } from '../ui/Toast';
 
 export const OrderDetailView: React.FC<{ orderId: string }> = ({ orderId }) => {
   const { showToast } = useToast();

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '../../hooks/useAuth';
 import { ThemeToggle } from '../ui/ThemeToggle';
-import { useToast } from '@/components/ui/Toast';
+import { useToast } from '../ui/Toast';
 
 export const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
@@ -20,19 +20,35 @@ export const Navbar: React.FC = () => {
 
   if (!user) return null;
 
-  const roleLabels: Record<string, { title: string; badgeColor: string }> = {
-    cutting_supervisor: { title: 'Cutting Supervisor', badgeColor: 'bg-orange-100 dark:bg-orange-950/70 text-orange-800 dark:text-orange-300 border-orange-200 dark:border-orange-800' },
-    cutting_verifier: { title: 'Cutting Verifier', badgeColor: 'bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800' },
-    sewing_supervisor: { title: 'Sewing Supervisor', badgeColor: 'bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800' },
+  const roleLabels: Record<string, { title: string; badgeColor: string; stationTitle: string }> = {
+    cutting_supervisor: {
+      title: 'Cutting Supervisor',
+      badgeColor: 'bg-orange-50 dark:bg-orange-950/70 text-orange-800 dark:text-orange-200 border-orange-300 dark:border-orange-800',
+      stationTitle: 'Cutting Floor Station',
+    },
+    cutting_verifier: {
+      title: 'QC Gatekeeper',
+      badgeColor: 'bg-emerald-50 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-200 border-emerald-300 dark:border-emerald-800',
+      stationTitle: 'Gatekeeper Verification Terminal',
+    },
+    sewing_supervisor: {
+      title: 'Sewing Supervisor',
+      badgeColor: 'bg-amber-50 dark:bg-amber-950/70 text-amber-800 dark:text-amber-200 border-amber-300 dark:border-amber-800',
+      stationTitle: 'Sewing Floor Station',
+    },
   };
 
-  const currentRole = roleLabels[user.role] || { title: user.role, badgeColor: 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700' };
+  const currentRole = roleLabels[user.role] || {
+    title: 'Operator',
+    badgeColor: 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700',
+    stationTitle: 'ApparelFlow Workspace',
+  };
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-orange-100/80 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md shadow-xs transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
-          {/* Brand Logo & Station Title */}
+          {/* Brand Logo & Dynamic Station Title */}
           <div className="flex items-center gap-6">
             <Link href="/" className="flex items-center gap-3 group">
               <img
@@ -45,7 +61,7 @@ export const Navbar: React.FC = () => {
                   ApparelFlow <span className="text-orange-600 dark:text-orange-500">ERP</span>
                 </span>
                 <span className="text-[10px] uppercase font-bold tracking-widest text-slate-500 dark:text-slate-400 block">
-                  Cutting Gatekeeper Terminal
+                  {currentRole.stationTitle}
                 </span>
               </div>
             </Link>
@@ -87,23 +103,21 @@ export const Navbar: React.FC = () => {
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
                   }`}
                 >
-                  Sewing Intake Floor
+                  Sewing Floor
                 </Link>
               )}
             </nav>
           </div>
 
-          {/* User Profile & Actions */}
+          {/* User Profile Single Clean Role Pill & Actions */}
           <div className="flex items-center gap-3">
             <ThemeToggle />
 
-            <div className="hidden sm:flex flex-col items-end text-right">
-              <span className="text-xs font-bold text-slate-900 dark:text-slate-100 leading-tight">
-                {user.name}
-              </span>
+            <div className="hidden sm:flex items-center">
               <span
-                className={`mt-1 inline-flex items-center px-2.5 py-0.5 text-[10px] font-bold rounded-full border uppercase tracking-wider leading-normal shadow-2xs ${currentRole.badgeColor}`}
+                className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-full border shadow-2xs ${currentRole.badgeColor}`}
               >
+                <span className="h-2 w-2 rounded-full bg-current opacity-80" />
                 {currentRole.title}
               </span>
             </div>

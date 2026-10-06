@@ -16,13 +16,13 @@ async function main() {
     where: { email: 'supervisor@apparelflow.com' },
     update: {
       passwordHash: supervisorHash,
-      name: 'Nimal Perera',
+      name: 'Cutting Supervisor',
       role: Role.cutting_supervisor,
     },
     create: {
       email: 'supervisor@apparelflow.com',
       passwordHash: supervisorHash,
-      name: 'Nimal Perera',
+      name: 'Cutting Supervisor',
       role: Role.cutting_supervisor,
     },
   });
@@ -31,13 +31,13 @@ async function main() {
     where: { email: 'verifier@apparelflow.com' },
     update: {
       passwordHash: verifierHash,
-      name: 'Kamala Silva',
+      name: 'QC Gatekeeper',
       role: Role.cutting_verifier,
     },
     create: {
       email: 'verifier@apparelflow.com',
       passwordHash: verifierHash,
-      name: 'Kamala Silva',
+      name: 'QC Gatekeeper',
       role: Role.cutting_verifier,
     },
   });
@@ -46,13 +46,13 @@ async function main() {
     where: { email: 'sewing@apparelflow.com' },
     update: {
       passwordHash: sewingHash,
-      name: 'Sunil Fernando',
+      name: 'Sewing Supervisor',
       role: Role.sewing_supervisor,
     },
     create: {
       email: 'sewing@apparelflow.com',
       passwordHash: sewingHash,
-      name: 'Sunil Fernando',
+      name: 'Sewing Supervisor',
       role: Role.sewing_supervisor,
     },
   });
