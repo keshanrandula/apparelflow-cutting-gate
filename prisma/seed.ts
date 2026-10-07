@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Starting database seed...');
+  console.log('🌱 Starting comprehensive database seed...');
 
   // 1. Seed Users
   const passwordSalt = 10;
@@ -58,489 +58,321 @@ async function main() {
   });
 
   console.log('✅ Seeded Users:');
-  console.log(`   - Supervisor: ${supervisor.email} (${supervisor.name})`);
-  console.log(`   - Verifier:   ${verifier.email} (${verifier.name})`);
-  console.log(`   - Sewing:     ${sewingSupervisor.email} (${sewingSupervisor.name})`);
+  console.log(`   - Supervisor: ${supervisor.email}`);
+  console.log(`   - Verifier:   ${verifier.email}`);
+  console.log(`   - Sewing:     ${sewingSupervisor.email}`);
 
-  // 2. Seed Recipe A: Casual Blouse
-  const recipeBlouse = await prisma.recipe.upsert({
-    where: { recipeCode: 'REC-BL01' },
-    update: {
-      name: 'Casual Blouse',
-      stdFabricYards: 1.8,
-      wastageCap: 5.0,
-    },
-    create: {
-      recipeCode: 'REC-BL01',
-      name: 'Casual Blouse',
-      stdFabricYards: 1.8,
-      wastageCap: 5.0,
-    },
-  });
-
-  const blouseComponentsData = [
-    { componentName: 'Front Body Panel', piecesPerGarment: 1, imageUrl: '/images/components/front-body.svg' },
-    { componentName: 'Back Body Panel', piecesPerGarment: 1, imageUrl: '/images/components/back-body.svg' },
-    { componentName: 'Sleeves (Left & Right)', piecesPerGarment: 2, imageUrl: '/images/components/sleeves.svg' },
-    { componentName: 'Collar & Stand', piecesPerGarment: 1, imageUrl: '/images/components/collar.svg' },
-    { componentName: 'Sleeve Cuffs', piecesPerGarment: 2, imageUrl: '/images/components/cuffs.svg' },
-  ];
-
-  const blouseComponents = [];
-  for (const comp of blouseComponentsData) {
-    const existing = await prisma.recipeComponent.findFirst({
-      where: {
-        recipeId: recipeBlouse.id,
-        componentName: comp.componentName,
-      },
+  // Helper function to seed recipe & components
+  async function seedRecipe(
+    code: string,
+    name: string,
+    stdYds: number,
+    cap: number,
+    components: Array<{ name: string; pieces: number; img: string }>
+  ) {
+    const recipe = await prisma.recipe.upsert({
+      where: { recipeCode: code },
+      update: { name, stdFabricYards: stdYds, wastageCap: cap },
+      create: { recipeCode: code, name, stdFabricYards: stdYds, wastageCap: cap },
     });
 
-    if (existing) {
-      const updated = await prisma.recipeComponent.update({
-        where: { id: existing.id },
-        data: {
-          piecesPerGarment: comp.piecesPerGarment,
-          imageUrl: comp.imageUrl,
-        },
+    const createdComponents = [];
+    for (const comp of components) {
+      const existing = await prisma.recipeComponent.findFirst({
+        where: { recipeId: recipe.id, componentName: comp.name },
       });
-      blouseComponents.push(updated);
-    } else {
-      const created = await prisma.recipeComponent.create({
-        data: {
-          recipeId: recipeBlouse.id,
-          componentName: comp.componentName,
-          piecesPerGarment: comp.piecesPerGarment,
-          imageUrl: comp.imageUrl,
-        },
-      });
-      blouseComponents.push(created);
+      if (existing) {
+        const updated = await prisma.recipeComponent.update({
+          where: { id: existing.id },
+          data: { piecesPerGarment: comp.pieces, imageUrl: comp.img },
+        });
+        createdComponents.push(updated);
+      } else {
+        const created = await prisma.recipeComponent.create({
+          data: {
+            recipeId: recipe.id,
+            componentName: comp.name,
+            piecesPerGarment: comp.pieces,
+            imageUrl: comp.img,
+          },
+        });
+        createdComponents.push(created);
+      }
     }
+    return { recipe, components: createdComponents };
   }
 
-  // 3. Seed Recipe B: Crop Top
-  const recipeCropTop = await prisma.recipe.upsert({
-    where: { recipeCode: 'REC-CT02' },
-    update: {
-      name: 'Crop Top',
-      stdFabricYards: 1.1,
-      wastageCap: 8.0,
-    },
-    create: {
-      recipeCode: 'REC-CT02',
-      name: 'Crop Top',
-      stdFabricYards: 1.1,
-      wastageCap: 8.0,
-    },
-  });
+  // 2. Seed Full Garment Catalog (7 Styles)
+  const blouse = await seedRecipe('REC-BL01', 'Casual Blouse', 1.8, 5.0, [
+    { name: 'Front Body Panel', pieces: 1, img: '/images/components/front-body.svg' },
+    { name: 'Back Body Panel', pieces: 1, img: '/images/components/back-body.svg' },
+    { name: 'Sleeves (Left & Right)', pieces: 2, img: '/images/components/sleeves.svg' },
+    { name: 'Collar & Stand', pieces: 1, img: '/images/components/collar.svg' },
+    { name: 'Sleeve Cuffs', pieces: 2, img: '/images/components/cuffs.svg' },
+  ]);
 
-  const cropTopComponentsData = [
-    { componentName: 'Front Chest Panel', piecesPerGarment: 1, imageUrl: '/images/components/front-chest.svg' },
-    { componentName: 'Back Support Panel', piecesPerGarment: 1, imageUrl: '/images/components/back-support.svg' },
-    { componentName: 'Neck Binding Strip', piecesPerGarment: 1, imageUrl: '/images/components/neck-binding.svg' },
-    { componentName: 'Hem Elastic Casing', piecesPerGarment: 1, imageUrl: '/images/components/hem-elastic.svg' },
-    { componentName: 'Side Strap Accents', piecesPerGarment: 2, imageUrl: '/images/components/side-straps.svg' },
-  ];
+  const cropTop = await seedRecipe('REC-CT02', 'Crop Top', 1.1, 8.0, [
+    { name: 'Front Chest Panel', pieces: 1, img: '/images/components/front-chest.svg' },
+    { name: 'Back Support Panel', pieces: 1, img: '/images/components/back-support.svg' },
+    { name: 'Neck Binding Strip', pieces: 1, img: '/images/components/neck-binding.svg' },
+    { name: 'Hem Elastic Casing', pieces: 1, img: '/images/components/hem-elastic.svg' },
+    { name: 'Side Strap Accents', pieces: 2, img: '/images/components/side-straps.svg' },
+  ]);
 
-  const cropTopComponents = [];
-  for (const comp of cropTopComponentsData) {
-    const existing = await prisma.recipeComponent.findFirst({
-      where: {
-        recipeId: recipeCropTop.id,
-        componentName: comp.componentName,
+  const polo = await seedRecipe('REC-PL03', 'Classic Polo Shirt', 1.45, 5.0, [
+    { name: 'Front Torso Panel', pieces: 1, img: '/images/components/front-body.svg' },
+    { name: 'Back Torso Panel', pieces: 1, img: '/images/components/back-body.svg' },
+    { name: 'Ribbed Knit Collar', pieces: 1, img: '/images/components/collar.svg' },
+    { name: 'Short Sleeves', pieces: 2, img: '/images/components/sleeves.svg' },
+    { name: 'Front Button Placket', pieces: 1, img: '/images/components/cuffs.svg' },
+  ]);
+
+  const tshirt = await seedRecipe('REC-TS04', 'Crewneck T-Shirt', 1.25, 4.0, [
+    { name: 'Front Body Panel', pieces: 1, img: '/images/components/front-body.svg' },
+    { name: 'Back Body Panel', pieces: 1, img: '/images/components/back-body.svg' },
+    { name: 'Short Sleeves', pieces: 2, img: '/images/components/sleeves.svg' },
+    { name: 'Ribbed Neckband', pieces: 1, img: '/images/components/neck-binding.svg' },
+  ]);
+
+  const hoodie = await seedRecipe('REC-HD05', 'Fleece Pullover Hoodie', 2.3, 6.0, [
+    { name: 'Front Body with Pocket', pieces: 1, img: '/images/components/front-body.svg' },
+    { name: 'Back Body Panel', pieces: 1, img: '/images/components/back-body.svg' },
+    { name: 'Hood Outer & Inner', pieces: 2, img: '/images/components/collar.svg' },
+    { name: 'Raglan Sleeves', pieces: 2, img: '/images/components/sleeves.svg' },
+    { name: 'Ribbed Waistband & Cuffs', pieces: 3, img: '/images/components/cuffs.svg' },
+  ]);
+
+  const denim = await seedRecipe('REC-DN06', 'Denim Slim Jeans', 2.1, 5.0, [
+    { name: 'Front Leg Panels', pieces: 2, img: '/images/components/front-body.svg' },
+    { name: 'Back Leg Panels', pieces: 2, img: '/images/components/back-body.svg' },
+    { name: 'Waistband Band', pieces: 1, img: '/images/components/hem-elastic.svg' },
+    { name: 'Back Pockets', pieces: 2, img: '/images/components/cuffs.svg' },
+    { name: 'Belt Loops (Set of 5)', pieces: 5, img: '/images/components/side-straps.svg' },
+  ]);
+
+  const oxford = await seedRecipe('REC-OX07', 'Oxford Button-Down Shirt', 1.75, 5.0, [
+    { name: 'Left & Right Front', pieces: 2, img: '/images/components/front-body.svg' },
+    { name: 'Back Panel with Yoke', pieces: 1, img: '/images/components/back-body.svg' },
+    { name: 'Long Sleeves', pieces: 2, img: '/images/components/sleeves.svg' },
+    { name: 'Button-Down Collar', pieces: 1, img: '/images/components/collar.svg' },
+    { name: 'Wrist Cuffs', pieces: 2, img: '/images/components/cuffs.svg' },
+  ]);
+
+  console.log('✅ Seeded 7 Garment Recipes & BOM Components.');
+
+  // Helper function to seed order + verification items
+  async function seedOrder(params: {
+    orderNo: string;
+    recipeData: { recipe: any; components: any[] };
+    targetQty: number;
+    fabricRollId: string;
+    actualFabricYds: number;
+    status: OrderStatus;
+    verifiedAt?: Date;
+    verificationLog?: { decision: 'APPROVED' | 'REJECTED'; note?: string; wastagePct: number };
+    sewingJob?: { notes: string };
+    shortageComponentIndex?: number;
+    shortageQtyDiff?: number;
+  }) {
+    const order = await prisma.cuttingOrder.upsert({
+      where: { orderNo: params.orderNo },
+      update: {
+        recipeId: params.recipeData.recipe.id,
+        targetQty: params.targetQty,
+        fabricRollId: params.fabricRollId,
+        actualFabricYds: params.actualFabricYds,
+        status: params.status,
+        createdById: supervisor.id,
+        verifiedById: params.verifiedAt ? verifier.id : null,
+        verifiedAt: params.verifiedAt || null,
+      },
+      create: {
+        orderNo: params.orderNo,
+        recipeId: params.recipeData.recipe.id,
+        targetQty: params.targetQty,
+        fabricRollId: params.fabricRollId,
+        actualFabricYds: params.actualFabricYds,
+        status: params.status,
+        createdById: supervisor.id,
+        verifiedById: params.verifiedAt ? verifier.id : null,
+        verifiedAt: params.verifiedAt || null,
       },
     });
 
-    if (existing) {
-      const updated = await prisma.recipeComponent.update({
-        where: { id: existing.id },
-        data: {
-          piecesPerGarment: comp.piecesPerGarment,
-          imageUrl: comp.imageUrl,
+    for (let i = 0; i < params.recipeData.components.length; i++) {
+      const comp = params.recipeData.components[i];
+      const expected = params.targetQty * comp.piecesPerGarment;
+      let actual = expected;
+      let itemStatus: ItemStatus = ItemStatus.GREEN;
+
+      if (params.status === OrderStatus.IN_PROGRESS) {
+        actual = 0;
+        itemStatus = ItemStatus.RED;
+      } else if (params.shortageComponentIndex === i) {
+        actual = Math.max(0, expected - (params.shortageQtyDiff || 5));
+        itemStatus = ItemStatus.RED;
+      }
+
+      await prisma.verificationItem.upsert({
+        where: {
+          orderId_componentId: {
+            orderId: order.id,
+            componentId: comp.id,
+          },
+        },
+        update: {
+          expectedQty: expected,
+          actualQty: actual,
+          status: itemStatus,
+        },
+        create: {
+          orderId: order.id,
+          componentId: comp.id,
+          expectedQty: expected,
+          actualQty: actual,
+          status: itemStatus,
         },
       });
-      cropTopComponents.push(updated);
-    } else {
-      const created = await prisma.recipeComponent.create({
-        data: {
-          recipeId: recipeCropTop.id,
-          componentName: comp.componentName,
-          piecesPerGarment: comp.piecesPerGarment,
-          imageUrl: comp.imageUrl,
-        },
-      });
-      cropTopComponents.push(created);
     }
-  }
 
-  console.log('✅ Seeded Recipes & Components:');
-  console.log(`   - ${recipeBlouse.name} (${recipeBlouse.recipeCode}) with ${blouseComponents.length} components`);
-  console.log(`   - ${recipeCropTop.name} (${recipeCropTop.recipeCode}) with ${cropTopComponents.length} components`);
+    if (params.verificationLog) {
+      const existing = await prisma.verificationLog.findFirst({
+        where: { orderId: order.id },
+      });
+      if (!existing) {
+        await prisma.verificationLog.create({
+          data: {
+            orderId: order.id,
+            verifierId: verifier.id,
+            decision: params.verificationLog.decision,
+            rejectionNote: params.verificationLog.note || null,
+            wastagePct: params.verificationLog.wastagePct,
+          },
+        });
+      }
+    }
 
-  // 4. Seed Demo Orders
-
-  // Order 1: PENDING_VERIFICATION (all-green-able ready scenario)
-  const order1 = await prisma.cuttingOrder.upsert({
-    where: { orderNo: 'CUT-2026-0001' },
-    update: {
-      recipeId: recipeBlouse.id,
-      targetQty: 100,
-      fabricRollId: 'ROLL-BL-901',
-      actualFabricYds: 182.0,
-      status: OrderStatus.PENDING_VERIFICATION,
-      createdById: supervisor.id,
-    },
-    create: {
-      orderNo: 'CUT-2026-0001',
-      recipeId: recipeBlouse.id,
-      targetQty: 100,
-      fabricRollId: 'ROLL-BL-901',
-      actualFabricYds: 182.0,
-      status: OrderStatus.PENDING_VERIFICATION,
-      createdById: supervisor.id,
-    },
-  });
-
-  for (const comp of blouseComponents) {
-    const expected = 100 * comp.piecesPerGarment;
-    await prisma.verificationItem.upsert({
-      where: {
-        orderId_componentId: {
-          orderId: order1.id,
-          componentId: comp.id,
+    if (params.sewingJob) {
+      await prisma.sewingJob.upsert({
+        where: { orderId: order.id },
+        update: {
+          startedById: sewingSupervisor.id,
+          startedAt: new Date(),
+          notes: params.sewingJob.notes,
         },
-      },
-      update: {
-        expectedQty: expected,
-        actualQty: expected,
-        status: ItemStatus.GREEN,
-      },
-      create: {
-        orderId: order1.id,
-        componentId: comp.id,
-        expectedQty: expected,
-        actualQty: expected,
-        status: ItemStatus.GREEN,
-      },
-    });
-  }
-
-  // Order 2: PENDING_VERIFICATION (shortage scenario for rejection test)
-  const order2 = await prisma.cuttingOrder.upsert({
-    where: { orderNo: 'CUT-2026-0002' },
-    update: {
-      recipeId: recipeCropTop.id,
-      targetQty: 50,
-      fabricRollId: 'ROLL-CT-402',
-      actualFabricYds: 60.5,
-      status: OrderStatus.PENDING_VERIFICATION,
-      createdById: supervisor.id,
-    },
-    create: {
-      orderNo: 'CUT-2026-0002',
-      recipeId: recipeCropTop.id,
-      targetQty: 50,
-      fabricRollId: 'ROLL-CT-402',
-      actualFabricYds: 60.5,
-      status: OrderStatus.PENDING_VERIFICATION,
-      createdById: supervisor.id,
-    },
-  });
-
-  for (const comp of cropTopComponents) {
-    const expected = 50 * comp.piecesPerGarment;
-    // Shortage on "Neck Binding Strip" (e.g., 42 instead of 50 => RED)
-    const isShortage = comp.componentName === 'Neck Binding Strip';
-    const actual = isShortage ? 42 : expected;
-    const status = isShortage ? ItemStatus.RED : ItemStatus.GREEN;
-
-    await prisma.verificationItem.upsert({
-      where: {
-        orderId_componentId: {
-          orderId: order2.id,
-          componentId: comp.id,
+        create: {
+          orderId: order.id,
+          startedById: sewingSupervisor.id,
+          startedAt: new Date(),
+          notes: params.sewingJob.notes,
         },
-      },
-      update: {
-        expectedQty: expected,
-        actualQty: actual,
-        status: status,
-      },
-      create: {
-        orderId: order2.id,
-        componentId: comp.id,
-        expectedQty: expected,
-        actualQty: actual,
-        status: status,
-      },
-    });
+      });
+    }
+
+    return order;
   }
 
-  // Order 3: IN_PROGRESS (cutting floor active workflow)
-  const order3 = await prisma.cuttingOrder.upsert({
-    where: { orderNo: 'CUT-2026-0003' },
-    update: {
-      recipeId: recipeBlouse.id,
-      targetQty: 80,
-      fabricRollId: 'ROLL-BL-905',
-      actualFabricYds: 145.0,
-      status: OrderStatus.IN_PROGRESS,
-      createdById: supervisor.id,
-    },
-    create: {
-      orderNo: 'CUT-2026-0003',
-      recipeId: recipeBlouse.id,
-      targetQty: 80,
-      fabricRollId: 'ROLL-BL-905',
-      actualFabricYds: 145.0,
-      status: OrderStatus.IN_PROGRESS,
-      createdById: supervisor.id,
+  // 3. Seed Realistic Apparel Production Orders
+  await seedOrder({
+    orderNo: 'CUT-2026-0001',
+    recipeData: blouse,
+    targetQty: 100,
+    fabricRollId: 'ROLL-BL-901',
+    actualFabricYds: 182.0,
+    status: OrderStatus.PENDING_VERIFICATION,
+  });
+
+  await seedOrder({
+    orderNo: 'CUT-2026-0002',
+    recipeData: cropTop,
+    targetQty: 50,
+    fabricRollId: 'ROLL-CT-402',
+    actualFabricYds: 60.5,
+    status: OrderStatus.PENDING_VERIFICATION,
+    shortageComponentIndex: 2, // Neck Binding Strip
+    shortageQtyDiff: 8,
+  });
+
+  await seedOrder({
+    orderNo: 'CUT-2026-0003',
+    recipeData: polo,
+    targetQty: 80,
+    fabricRollId: 'ROLL-PL-701',
+    actualFabricYds: 118.0,
+    status: OrderStatus.PENDING_VERIFICATION,
+  });
+
+  await seedOrder({
+    orderNo: 'CUT-2026-0004',
+    recipeData: tshirt,
+    targetQty: 150,
+    fabricRollId: 'ROLL-TS-310',
+    actualFabricYds: 191.0,
+    status: OrderStatus.IN_PROGRESS,
+  });
+
+  await seedOrder({
+    orderNo: 'CUT-2026-0005',
+    recipeData: hoodie,
+    targetQty: 60,
+    fabricRollId: 'ROLL-HD-105',
+    actualFabricYds: 142.0,
+    status: OrderStatus.IN_PROGRESS,
+  });
+
+  await seedOrder({
+    orderNo: 'CUT-2026-0006',
+    recipeData: denim,
+    targetQty: 75,
+    fabricRollId: 'ROLL-DN-882',
+    actualFabricYds: 161.0,
+    status: OrderStatus.VERIFIED,
+    verifiedAt: new Date(),
+    verificationLog: { decision: 'APPROVED', wastagePct: 2.22 },
+  });
+
+  await seedOrder({
+    orderNo: 'CUT-2026-0007',
+    recipeData: oxford,
+    targetQty: 60,
+    fabricRollId: 'ROLL-OX-551',
+    actualFabricYds: 108.5,
+    status: OrderStatus.VERIFIED,
+    verifiedAt: new Date(),
+    verificationLog: { decision: 'APPROVED', wastagePct: 3.33 },
+  });
+
+  await seedOrder({
+    orderNo: 'CUT-2026-0008',
+    recipeData: cropTop,
+    targetQty: 40,
+    fabricRollId: 'ROLL-CT-503',
+    actualFabricYds: 45.0,
+    status: OrderStatus.SEWING_STARTED,
+    verifiedAt: new Date(),
+    verificationLog: { decision: 'APPROVED', wastagePct: 2.27 },
+    sewingJob: { notes: 'Line 02 intake initialized - priority fast-fashion lot' },
+  });
+
+  await seedOrder({
+    orderNo: 'CUT-2026-0009',
+    recipeData: blouse,
+    targetQty: 50,
+    fabricRollId: 'ROLL-BL-880',
+    actualFabricYds: 95.0,
+    status: OrderStatus.REJECTED,
+    verifiedAt: new Date(),
+    shortageComponentIndex: 0,
+    shortageQtyDiff: 5,
+    verificationLog: {
+      decision: 'REJECTED',
+      note: 'Front Body Panel has a shortage of 5 pieces due to fabric roll end flaw. Returned to supervisor for re-cut.',
+      wastagePct: 5.56,
     },
   });
 
-  for (const comp of blouseComponents) {
-    const expected = 80 * comp.piecesPerGarment;
-    await prisma.verificationItem.upsert({
-      where: {
-        orderId_componentId: {
-          orderId: order3.id,
-          componentId: comp.id,
-        },
-      },
-      update: {
-        expectedQty: expected,
-        actualQty: 0,
-        status: ItemStatus.RED,
-      },
-      create: {
-        orderId: order3.id,
-        componentId: comp.id,
-        expectedQty: expected,
-        actualQty: 0,
-        status: ItemStatus.RED,
-      },
-    });
-  }
-
-  // Order 4: VERIFIED (Verified by Gatekeeper, waiting in Sewing Queue)
-  const order4 = await prisma.cuttingOrder.upsert({
-    where: { orderNo: 'CUT-2026-0004' },
-    update: {
-      recipeId: recipeBlouse.id,
-      targetQty: 60,
-      fabricRollId: 'ROLL-BL-908',
-      actualFabricYds: 110.0,
-      status: OrderStatus.VERIFIED,
-      createdById: supervisor.id,
-      verifiedById: verifier.id,
-      verifiedAt: new Date(),
-    },
-    create: {
-      orderNo: 'CUT-2026-0004',
-      recipeId: recipeBlouse.id,
-      targetQty: 60,
-      fabricRollId: 'ROLL-BL-908',
-      actualFabricYds: 110.0,
-      status: OrderStatus.VERIFIED,
-      createdById: supervisor.id,
-      verifiedById: verifier.id,
-      verifiedAt: new Date(),
-    },
-  });
-
-  for (const comp of blouseComponents) {
-    const expected = 60 * comp.piecesPerGarment;
-    await prisma.verificationItem.upsert({
-      where: {
-        orderId_componentId: {
-          orderId: order4.id,
-          componentId: comp.id,
-        },
-      },
-      update: {
-        expectedQty: expected,
-        actualQty: expected,
-        status: ItemStatus.GREEN,
-      },
-      create: {
-        orderId: order4.id,
-        componentId: comp.id,
-        expectedQty: expected,
-        actualQty: expected,
-        status: ItemStatus.GREEN,
-      },
-    });
-  }
-
-  const existingLog4 = await prisma.verificationLog.findFirst({
-    where: { orderId: order4.id },
-  });
-  if (!existingLog4) {
-    await prisma.verificationLog.create({
-      data: {
-        orderId: order4.id,
-        verifierId: verifier.id,
-        decision: 'APPROVED',
-        rejectionNote: null,
-        wastagePct: 1.85,
-      },
-    });
-  }
-
-  // Order 5: SEWING_STARTED (Intake started by Sewing Supervisor)
-  const order5 = await prisma.cuttingOrder.upsert({
-    where: { orderNo: 'CUT-2026-0005' },
-    update: {
-      recipeId: recipeCropTop.id,
-      targetQty: 40,
-      fabricRollId: 'ROLL-CT-503',
-      actualFabricYds: 45.0,
-      status: OrderStatus.SEWING_STARTED,
-      createdById: supervisor.id,
-      verifiedById: verifier.id,
-      verifiedAt: new Date(),
-    },
-    create: {
-      orderNo: 'CUT-2026-0005',
-      recipeId: recipeCropTop.id,
-      targetQty: 40,
-      fabricRollId: 'ROLL-CT-503',
-      actualFabricYds: 45.0,
-      status: OrderStatus.SEWING_STARTED,
-      createdById: supervisor.id,
-      verifiedById: verifier.id,
-      verifiedAt: new Date(),
-    },
-  });
-
-  for (const comp of cropTopComponents) {
-    const expected = 40 * comp.piecesPerGarment;
-    await prisma.verificationItem.upsert({
-      where: {
-        orderId_componentId: {
-          orderId: order5.id,
-          componentId: comp.id,
-        },
-      },
-      update: {
-        expectedQty: expected,
-        actualQty: expected,
-        status: ItemStatus.GREEN,
-      },
-      create: {
-        orderId: order5.id,
-        componentId: comp.id,
-        expectedQty: expected,
-        actualQty: expected,
-        status: ItemStatus.GREEN,
-      },
-    });
-  }
-
-  const existingLog5 = await prisma.verificationLog.findFirst({
-    where: { orderId: order5.id },
-  });
-  if (!existingLog5) {
-    await prisma.verificationLog.create({
-      data: {
-        orderId: order5.id,
-        verifierId: verifier.id,
-        decision: 'APPROVED',
-        rejectionNote: null,
-        wastagePct: 2.27,
-      },
-    });
-  }
-
-  await prisma.sewingJob.upsert({
-    where: { orderId: order5.id },
-    update: {
-      startedById: sewingSupervisor.id,
-      startedAt: new Date(),
-      notes: 'Line 02 intake initialized - priority shipment',
-    },
-    create: {
-      orderId: order5.id,
-      startedById: sewingSupervisor.id,
-      startedAt: new Date(),
-      notes: 'Line 02 intake initialized - priority shipment',
-    },
-  });
-
-  // Order 6: REJECTED (Defect detected, returned for re-cut)
-  const order6 = await prisma.cuttingOrder.upsert({
-    where: { orderNo: 'CUT-2026-0006' },
-    update: {
-      recipeId: recipeBlouse.id,
-      targetQty: 50,
-      fabricRollId: 'ROLL-BL-880',
-      actualFabricYds: 95.0,
-      status: OrderStatus.REJECTED,
-      createdById: supervisor.id,
-      verifiedById: verifier.id,
-      verifiedAt: new Date(),
-    },
-    create: {
-      orderNo: 'CUT-2026-0006',
-      recipeId: recipeBlouse.id,
-      targetQty: 50,
-      fabricRollId: 'ROLL-BL-880',
-      actualFabricYds: 95.0,
-      status: OrderStatus.REJECTED,
-      createdById: supervisor.id,
-      verifiedById: verifier.id,
-      verifiedAt: new Date(),
-    },
-  });
-
-  for (const comp of blouseComponents) {
-    const expected = 50 * comp.piecesPerGarment;
-    const isShortage = comp.componentName === 'Front Body Panel';
-    const actual = isShortage ? 45 : expected;
-    await prisma.verificationItem.upsert({
-      where: {
-        orderId_componentId: {
-          orderId: order6.id,
-          componentId: comp.id,
-        },
-      },
-      update: {
-        expectedQty: expected,
-        actualQty: actual,
-        status: isShortage ? ItemStatus.RED : ItemStatus.GREEN,
-      },
-      create: {
-        orderId: order6.id,
-        componentId: comp.id,
-        expectedQty: expected,
-        actualQty: actual,
-        status: isShortage ? ItemStatus.RED : ItemStatus.GREEN,
-      },
-    });
-  }
-
-  const existingLog6 = await prisma.verificationLog.findFirst({
-    where: { orderId: order6.id },
-  });
-  if (!existingLog6) {
-    await prisma.verificationLog.create({
-      data: {
-        orderId: order6.id,
-        verifierId: verifier.id,
-        decision: 'REJECTED',
-        rejectionNote: 'Front Body Panel has a shortage of 5 pieces due to fabric defect on roll edge. Returned for re-cut.',
-        wastagePct: 5.56,
-      },
-    });
-  }
-
-  console.log('✅ Seeded Demo Cutting Orders:');
-  console.log(`   - CUT-2026-0001 (PENDING_VERIFICATION, all-green ready)`);
-  console.log(`   - CUT-2026-0002 (PENDING_VERIFICATION, shortage scenario: Neck Binding Strip RED)`);
-  console.log(`   - CUT-2026-0003 (IN_PROGRESS, active cutting floor batch)`);
-  console.log(`   - CUT-2026-0004 (VERIFIED, ready for Sewing Floor Queue)`);
-  console.log(`   - CUT-2026-0005 (SEWING_STARTED, active sewing assembly line)`);
-  console.log(`   - CUT-2026-0006 (REJECTED, returned to supervisor for re-cut)`);
-  console.log('🎉 Seeding completed successfully.');
+  console.log('✅ Seeded 9 Demo Orders across all states.');
+  console.log('🎉 Database Seeding completed successfully!');
 }
 
 main()
