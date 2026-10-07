@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import Link from 'next/link';
 import { useOrders } from '../../hooks/useOrders';
 import { CuttingOrder, ItemStatus } from '../../types';
 import { Card, Modal } from '../ui/Card';
@@ -30,6 +31,9 @@ export const VerificationDashboard: React.FC = () => {
   const [actionError, setActionError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Active tab filter: 'pending' (default inspection queue) | 'history' (already verified / processed batches)
+  const [activeTab, setActiveTab] = useState<'pending' | 'history'>('pending');
+
   // Filter orders in PENDING_VERIFICATION queue
   const pendingOrders = useMemo(() => {
     return orders.filter((o) => {
@@ -46,28 +50,51 @@ export const VerificationDashboard: React.FC = () => {
     });
   }, [orders, searchQuery]);
 
-  // Sync selected order and initialize counts when orders list updates or order selection changes
+  // Filter historical / processed orders (VERIFIED, SEWING_STARTED, REJECTED)
+  const historyOrders = useMemo(() => {
+    return orders.filter((o) => {
+      const isHistory = o.status !== 'PENDING_VERIFICATION';
+      if (!isHistory) return false;
+      if (!searchQuery.trim()) return true;
+      const q = searchQuery.toLowerCase();
+      return (
+        o.orderNo.toLowerCase().includes(q) ||
+        o.recipe?.name.toLowerCase().includes(q) ||
+        o.fabricRollId.toLowerCase().includes(q) ||
+        (o.createdBy?.name && o.createdBy.name.toLowerCase().includes(q))
+      );
+    });
+  }, [orders, searchQuery]);
+
+  const displayedOrders = activeTab === 'pending' ? pendingOrders : historyOrders;
+
+  // Sync selected order and initialize counts when orders list updates or tab changes
   useEffect(() => {
-    if (selectedOrder) {
-      const fresh = orders.find((o) => o.id === selectedOrder.id);
+    // If selectedOrder exists and is present in the current tab's displayed orders, keep it synced
+    if (selectedOrder && displayedOrders.some((o) => o.id === selectedOrder.id)) {
+      const fresh = displayedOrders.find((o) => o.id === selectedOrder.id);
       if (fresh) {
         setSelectedOrder(fresh);
         const inputs: Record<string, string> = {};
         fresh.items?.forEach((item) => {
           inputs[item.componentId] = item.actualQty.toString();
         });
-        setCountsInputState((prev) => ({ ...inputs, ...prev }));
+        setCountsInputState(inputs);
       }
-    } else if (pendingOrders.length > 0) {
-      const first = pendingOrders[0];
+    } else if (displayedOrders.length > 0) {
+      // Auto-select the first order in the active tab
+      const first = displayedOrders[0];
       setSelectedOrder(first);
       const inputs: Record<string, string> = {};
       first.items?.forEach((item) => {
         inputs[item.componentId] = item.actualQty.toString();
       });
       setCountsInputState(inputs);
+    } else {
+      setSelectedOrder(null);
+      setCountsInputState({});
     }
-  }, [orders]);
+  }, [orders, activeTab, displayedOrders]);
 
   const handleSelectOrder = (order: CuttingOrder) => {
     setSelectedOrder(order);
@@ -324,12 +351,38 @@ export const VerificationDashboard: React.FC = () => {
 
       {/* Main Workbench Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Left Column: Pending Queue Sidebar */}
+        {/* Left Column: Queue / History Sidebar */}
         <div className="lg:col-span-4 space-y-4">
           <Card
-            title={`Pending Verification Queue (${pendingOrders.length})`}
-            subtitle="Cut orders awaiting gatekeeper physical count"
+            title={activeTab === 'pending' ? `Pending Queue (${pendingOrders.length})` : `Processed History (${historyOrders.length})`}
+            subtitle={activeTab === 'pending' ? 'Cut orders awaiting gatekeeper physical count' : 'Batches verified, released to sewing, or rejected'}
           >
+            {/* View Switcher Tabs */}
+            <div className="flex rounded-xl bg-slate-100 p-1 mb-3.5 border border-slate-200">
+              <button
+                type="button"
+                onClick={() => setActiveTab('pending')}
+                className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition ${
+                  activeTab === 'pending'
+                    ? 'bg-white text-slate-900 shadow-xs border border-slate-200/80'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Pending ({pendingOrders.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('history')}
+                className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition ${
+                  activeTab === 'history'
+                    ? 'bg-white text-slate-900 shadow-xs border border-slate-200/80'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                History ({historyOrders.length})
+              </button>
+            </div>
+
             {/* Quick Search */}
             <div className="relative mb-3.5">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
@@ -357,15 +410,17 @@ export const VerificationDashboard: React.FC = () => {
               )}
             </div>
 
-            {pendingOrders.length === 0 ? (
+            {displayedOrders.length === 0 ? (
               <div className="py-12 text-center text-xs text-slate-500 font-medium">
-                {orders.some((o) => o.status === 'PENDING_VERIFICATION')
-                  ? 'No pending orders match your search query.'
-                  : '✓ All caught up! No orders currently pending gatekeeper verification.'}
+                {searchQuery
+                  ? 'No orders match your search query.'
+                  : activeTab === 'pending'
+                  ? '✓ All caught up! No orders currently pending gatekeeper verification.'
+                  : 'No historical / processed orders recorded yet.'}
               </div>
             ) : (
               <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1">
-                {pendingOrders.map((order) => {
+                {displayedOrders.map((order) => {
                   const isSelected = selectedOrder?.id === order.id;
                   return (
                     <div
@@ -425,25 +480,36 @@ export const VerificationDashboard: React.FC = () => {
                 title={`Inspecting Batch: ${selectedOrder.orderNo}`}
                 subtitle={`Style: ${selectedOrder.recipe.name} (${selectedOrder.recipe.recipeCode}) • Supervisor: ${selectedOrder.createdBy?.name || 'N/A'}`}
                 action={
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={handleFillAllExpected}
-                      title="Autofill all actual counts with standard expected quantities"
-                    >
-                      ⚡ Fill All Expected
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleSaveProgress}
-                      loading={savingCounts}
-                      title="Save counts to database to persist across refresh"
-                    >
-                      💾 Save Progress
-                    </Button>
-                  </div>
+                  selectedOrder.status === 'PENDING_VERIFICATION' ? (
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={handleFillAllExpected}
+                        title="Autofill all actual counts with standard expected quantities"
+                      >
+                        ⚡ Fill All Expected
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleSaveProgress}
+                        loading={savingCounts}
+                        title="Save counts to database to persist across refresh"
+                      >
+                        💾 Save Progress
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <Link
+                        href={`/orders/${selectedOrder.id}`}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 transition shadow-xs"
+                      >
+                        🔍 Full Audit Record →
+                      </Link>
+                    </div>
+                  )
                 }
               >
                 {/* KPI Header Grid */}
@@ -498,7 +564,11 @@ export const VerificationDashboard: React.FC = () => {
               {/* Physical Component Count Table */}
               <Card
                 title="Component Physical Piece Counter"
-                subtitle="Enter physical counts verified at gate. Traffic light flags update automatically."
+                subtitle={
+                  selectedOrder.status === 'PENDING_VERIFICATION'
+                    ? "Enter physical counts verified at gate. Traffic light flags update automatically."
+                    : "Archived component counts and traffic light statuses for this processed batch."
+                }
               >
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs">
@@ -514,6 +584,7 @@ export const VerificationDashboard: React.FC = () => {
                     <tbody className="divide-y divide-slate-200 font-medium">
                       {inspectionAnalysis.itemAnalyses.map(({ item, actualQty, isUncounted, diff, status }) => {
                         const rawInputValue = countsInputState[item.componentId] ?? '';
+                        const isReadOnly = selectedOrder.status !== 'PENDING_VERIFICATION';
 
                         return (
                           <tr
@@ -555,16 +626,20 @@ export const VerificationDashboard: React.FC = () => {
                                   type="text"
                                   inputMode="numeric"
                                   pattern="[0-9]*"
+                                  disabled={isReadOnly}
+                                  readOnly={isReadOnly}
                                   aria-label={`Actual count for ${item.component.componentName}`}
                                   value={rawInputValue}
                                   placeholder="0"
                                   onChange={(e) => handleCountChange(item.componentId, e.target.value)}
                                   className={`w-28 text-center py-1.5 px-2 rounded-lg font-black text-sm border-2 shadow-xs transition ${
-                                    isUncounted || status === 'RED'
+                                    isReadOnly
+                                      ? 'bg-slate-100 border-slate-300 text-slate-900 cursor-not-allowed'
+                                      : isUncounted || status === 'RED'
                                       ? 'border-rose-400 bg-white text-rose-950 focus:border-rose-600 focus:ring-2 focus:ring-rose-500/20'
                                       : 'border-slate-300 bg-white text-slate-950 focus:border-orange-600 focus:ring-2 focus:ring-orange-500/20'
                                   }`}
-                                  style={{ color: '#111827', backgroundColor: '#ffffff' }}
+                                  style={{ color: '#111827', backgroundColor: isReadOnly ? '#f1f5f9' : '#ffffff' }}
                                 />
                               </div>
                             </td>
@@ -581,76 +656,144 @@ export const VerificationDashboard: React.FC = () => {
                   </table>
                 </div>
 
-                {/* Gatekeeper Final Action Bar */}
+                {/* Gatekeeper Final Action Bar / Completed Banner */}
                 <div className="mt-8 pt-6 border-t border-slate-200 space-y-4">
-                  {/* Status compliance banner */}
-                  <div>
-                    {inspectionAnalysis.hasRedShortage ? (
-                      <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-300 text-xs font-bold text-rose-900 flex items-center gap-2">
-                        <span className="text-base text-rose-600 font-black">🔒</span>
-                        <span>
-                          <strong>Approval Locked:</strong> {inspectionAnalysis.redCount} component(s) have shortages (<span className="text-rose-700 underline">RED</span>) or are uncounted. All components must meet or exceed expected quantities to approve.
-                        </span>
-                      </div>
-                    ) : !inspectionAnalysis.allCounted ? (
-                      <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-300 text-xs font-bold text-amber-900 flex items-center gap-2">
-                        <span className="text-base text-amber-600 font-black">⚠️</span>
-                        <span>
-                          <strong>Approval Locked:</strong> Please enter physical piece counts for all {inspectionAnalysis.totalComponents} components.
-                        </span>
-                      </div>
-                    ) : (
-                      <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-300 text-xs font-bold text-emerald-900 flex items-center gap-2">
-                        <span className="text-base text-emerald-600 font-black">✓</span>
-                        <span>
-                          <strong>Verification Ready:</strong> All components meet or exceed expected quantities (0 Shortages). Ready for gatekeeper approval release.
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Buttons */}
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-                    <div>
-                      <Button
-                        variant="secondary"
-                        size="md"
-                        onClick={handleSaveProgress}
-                        loading={savingCounts}
-                      >
-                        💾 Save Progress
-                      </Button>
+                  {selectedOrder.status !== 'PENDING_VERIFICATION' ? (
+                    <div className="space-y-3">
+                      {selectedOrder.status === 'SEWING_STARTED' ? (
+                        <div className="p-4 rounded-xl bg-orange-50 border-2 border-orange-300 text-xs text-orange-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                          <div className="flex items-center gap-2.5">
+                            <span className="text-2xl">🧵</span>
+                            <div>
+                              <strong className="block text-sm font-extrabold text-orange-900">
+                                Sewing Assembly In-Progress (SEWING_STARTED)
+                              </strong>
+                              <p className="mt-0.5 text-orange-800">
+                                This batch passed Gatekeeper verification and has been taken into active sewing assembly.
+                              </p>
+                            </div>
+                          </div>
+                          <Link
+                            href={`/orders/${selectedOrder.id}`}
+                            className="shrink-0 px-3.5 py-2 rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs transition shadow-xs"
+                          >
+                            View Order Timeline →
+                          </Link>
+                        </div>
+                      ) : selectedOrder.status === 'VERIFIED' ? (
+                        <div className="p-4 rounded-xl bg-emerald-50 border-2 border-emerald-300 text-xs text-emerald-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                          <div className="flex items-center gap-2.5">
+                            <span className="text-2xl">✓</span>
+                            <div>
+                              <strong className="block text-sm font-extrabold text-emerald-900">
+                                Verified & Released to Sewing Queue (VERIFIED)
+                              </strong>
+                              <p className="mt-0.5 text-emerald-800">
+                                Batch approved by QC Gatekeeper. Awaiting sewing supervisor floor intake.
+                              </p>
+                            </div>
+                          </div>
+                          <Link
+                            href={`/orders/${selectedOrder.id}`}
+                            className="shrink-0 px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition shadow-xs"
+                          >
+                            View Order Timeline →
+                          </Link>
+                        </div>
+                      ) : (
+                        <div className="p-4 rounded-xl bg-rose-50 border-2 border-rose-300 text-xs text-rose-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                          <div className="flex items-center gap-2.5">
+                            <span className="text-2xl">✕</span>
+                            <div>
+                              <strong className="block text-sm font-extrabold text-rose-900">
+                                Batch Rejected (REJECTED)
+                              </strong>
+                              <p className="mt-0.5 text-rose-800">
+                                Returned to Cutting Supervisor with defect notes for re-cutting.
+                              </p>
+                            </div>
+                          </div>
+                          <Link
+                            href={`/orders/${selectedOrder.id}`}
+                            className="shrink-0 px-3.5 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs transition shadow-xs"
+                          >
+                            View Defect Notes →
+                          </Link>
+                        </div>
+                      )}
                     </div>
-
-                    <div className="flex items-center gap-3">
-                      {/* Reject Button (Always Available) */}
-                      <Button
-                        variant="danger"
-                        size="md"
-                        onClick={() => {
-                          setRejectionNote('');
-                          setRejectionTouched(false);
-                          setIsRejectModalOpen(true);
-                        }}
-                      >
-                        ✕ Reject Batch (Re-cut)
-                      </Button>
-
-                      {/* Approve Batch Button (Disabled when RED or uncounted) */}
-                      <div className="relative group">
-                        <Button
-                          variant="success"
-                          size="md"
-                          onClick={handleApproveBatch}
-                          loading={approving}
-                          disabled={inspectionAnalysis.hasRedShortage || !inspectionAnalysis.allCounted}
-                          aria-disabled={inspectionAnalysis.hasRedShortage || !inspectionAnalysis.allCounted}
-                        >
-                          ✓ Approve Batch & Release
-                        </Button>
+                  ) : (
+                    <>
+                      {/* Status compliance banner */}
+                      <div>
+                        {inspectionAnalysis.hasRedShortage ? (
+                          <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-300 text-xs font-bold text-rose-900 flex items-center gap-2">
+                            <span className="text-base text-rose-600 font-black">🔒</span>
+                            <span>
+                              <strong>Approval Locked:</strong> {inspectionAnalysis.redCount} component(s) have shortages (<span className="text-rose-700 underline">RED</span>) or are uncounted. All components must meet or exceed expected quantities to approve.
+                            </span>
+                          </div>
+                        ) : !inspectionAnalysis.allCounted ? (
+                          <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-300 text-xs font-bold text-amber-900 flex items-center gap-2">
+                            <span className="text-base text-amber-600 font-black">⚠️</span>
+                            <span>
+                              <strong>Approval Locked:</strong> Please enter physical piece counts for all {inspectionAnalysis.totalComponents} components.
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-300 text-xs font-bold text-emerald-900 flex items-center gap-2">
+                            <span className="text-base text-emerald-600 font-black">✓</span>
+                            <span>
+                              <strong>Verification Ready:</strong> All components meet or exceed expected quantities (0 Shortages). Ready for gatekeeper approval release.
+                            </span>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  </div>
+
+                      {/* Buttons */}
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+                        <div>
+                          <Button
+                            variant="secondary"
+                            size="md"
+                            onClick={handleSaveProgress}
+                            loading={savingCounts}
+                          >
+                            💾 Save Progress
+                          </Button>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          {/* Reject Button (Always Available) */}
+                          <Button
+                            variant="danger"
+                            size="md"
+                            onClick={() => {
+                              setRejectionNote('');
+                              setRejectionTouched(false);
+                              setIsRejectModalOpen(true);
+                            }}
+                          >
+                            ✕ Reject Batch (Re-cut)
+                          </Button>
+
+                          {/* Approve Batch Button (Disabled when RED or uncounted) */}
+                          <div className="relative group">
+                            <Button
+                              variant="success"
+                              size="md"
+                              onClick={handleApproveBatch}
+                              loading={approving}
+                              disabled={inspectionAnalysis.hasRedShortage || !inspectionAnalysis.allCounted}
+                              aria-disabled={inspectionAnalysis.hasRedShortage || !inspectionAnalysis.allCounted}
+                            >
+                              ✓ Approve Batch & Release
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               </Card>
             </>
