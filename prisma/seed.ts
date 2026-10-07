@@ -371,15 +371,20 @@ async function main() {
     });
   }
 
-  await prisma.verificationLog.create({
-    data: {
-      orderId: order4.id,
-      verifierId: verifier.id,
-      decision: 'APPROVED',
-      rejectionNote: null,
-      wastagePct: 1.85,
-    },
+  const existingLog4 = await prisma.verificationLog.findFirst({
+    where: { orderId: order4.id },
   });
+  if (!existingLog4) {
+    await prisma.verificationLog.create({
+      data: {
+        orderId: order4.id,
+        verifierId: verifier.id,
+        decision: 'APPROVED',
+        rejectionNote: null,
+        wastagePct: 1.85,
+      },
+    });
+  }
 
   // Order 5: SEWING_STARTED (Intake started by Sewing Supervisor)
   const order5 = await prisma.cuttingOrder.upsert({
@@ -431,18 +436,29 @@ async function main() {
     });
   }
 
-  await prisma.verificationLog.create({
-    data: {
-      orderId: order5.id,
-      verifierId: verifier.id,
-      decision: 'APPROVED',
-      rejectionNote: null,
-      wastagePct: 2.27,
-    },
+  const existingLog5 = await prisma.verificationLog.findFirst({
+    where: { orderId: order5.id },
   });
+  if (!existingLog5) {
+    await prisma.verificationLog.create({
+      data: {
+        orderId: order5.id,
+        verifierId: verifier.id,
+        decision: 'APPROVED',
+        rejectionNote: null,
+        wastagePct: 2.27,
+      },
+    });
+  }
 
-  await prisma.sewingJob.create({
-    data: {
+  await prisma.sewingJob.upsert({
+    where: { orderId: order5.id },
+    update: {
+      startedById: sewingSupervisor.id,
+      startedAt: new Date(),
+      notes: 'Line 02 intake initialized - priority shipment',
+    },
+    create: {
       orderId: order5.id,
       startedById: sewingSupervisor.id,
       startedAt: new Date(),
@@ -502,15 +518,20 @@ async function main() {
     });
   }
 
-  await prisma.verificationLog.create({
-    data: {
-      orderId: order6.id,
-      verifierId: verifier.id,
-      decision: 'REJECTED',
-      rejectionNote: 'Front Body Panel has a shortage of 5 pieces due to fabric defect on roll edge. Returned for re-cut.',
-      wastagePct: 5.56,
-    },
+  const existingLog6 = await prisma.verificationLog.findFirst({
+    where: { orderId: order6.id },
   });
+  if (!existingLog6) {
+    await prisma.verificationLog.create({
+      data: {
+        orderId: order6.id,
+        verifierId: verifier.id,
+        decision: 'REJECTED',
+        rejectionNote: 'Front Body Panel has a shortage of 5 pieces due to fabric defect on roll edge. Returned for re-cut.',
+        wastagePct: 5.56,
+      },
+    });
+  }
 
   console.log('✅ Seeded Demo Cutting Orders:');
   console.log(`   - CUT-2026-0001 (PENDING_VERIFICATION, all-green ready)`);
