@@ -191,17 +191,17 @@ export const CuttingDashboard: React.FC = () => {
   return (
     <div className="space-y-8">
       {/* Header & Primary Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-2xl font-black tracking-tight text-slate-900">
+          <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
             Cutting Supervisor Workspace
           </h1>
-          <p className="text-xs text-slate-600 mt-1 font-medium">
+          <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 font-medium">
             Log fabric cut batches, compute real-time bill-of-materials, and track gatekeeper verification progress.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <Button
             variant="outline"
             size="sm"
@@ -210,8 +210,9 @@ export const CuttingDashboard: React.FC = () => {
               showToast('Cutting orders list refreshed', 'info');
             }}
             loading={loading}
+            className="flex-1 sm:flex-initial"
           >
-            ↻ Refresh Orders
+            ↻ Refresh
           </Button>
           <Button
             variant="primary"
@@ -220,8 +221,9 @@ export const CuttingDashboard: React.FC = () => {
               setIsCreateModalOpen(true);
               setServerError(null);
             }}
+            className="flex-1 sm:flex-initial"
           >
-            + Create Cutting Order
+            + Create Order
           </Button>
         </div>
       </div>
