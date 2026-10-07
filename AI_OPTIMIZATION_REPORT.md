@@ -86,12 +86,12 @@ I separated all business rules from database models and UI components into pure,
 * `computeWastagePct(actualYds, stdYards, targetQty)`: Accurately calculates fabric variance against the recipe cap.
 * `validateStateTransition(currentStatus, targetStatus)`: Ensures orders move strictly along the manufacturing pipeline.
 
-### 2. Atomic Database Transactions with Race Condition Prevention
-In a busy factory, two operators might click approve or reject simultaneously. I wrapped state changes in Prisma `$transaction` blocks and used conditional updates (`where: { id, status: OrderStatus.PENDING_VERIFICATION }`):
+### 2. Atomic Operations & Race Condition Prevention
+In a busy factory, two operators might click approve or reject simultaneously. To handle high-concurrency safely across serverless connection poolers, I used conditional atomic updates with optimistic concurrency locking (`where: { id, status: OrderStatus.PENDING_VERIFICATION }`):
 ```typescript
-const updateResult = await tx.cuttingOrder.updateMany({
+const updateResult = await prisma.cuttingOrder.updateMany({
   where: { id: order.id, status: OrderStatus.PENDING_VERIFICATION },
-  data: { status: OrderStatus.VERIFIED, verifiedById: session.userId, verifiedAt: serverTimestamp },
+  data: { status: OrderStatus.VERIFIED, verifiedById: session.userId, verifiedAt: serverTimestamp, wastagePct },
 });
 
 if (updateResult.count === 0) {
