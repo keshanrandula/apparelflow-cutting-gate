@@ -93,15 +93,18 @@ export function handleError(error: unknown): NextResponse {
     );
   }
 
-  // 3. Fallback for unexpected internal errors (Never leak stack traces)
+  // 3. Fallback for unhandled internal / database errors
   console.error('[Unhandled Internal Error]:', error);
+
+  const fallbackMessage =
+    error instanceof Error ? error.message : 'An unexpected error occurred. Please try again later.';
 
   return NextResponse.json(
     {
       success: false,
       error: {
         code: 'INTERNAL_SERVER_ERROR',
-        message: 'An unexpected error occurred. Please try again later.',
+        message: fallbackMessage,
       },
     },
     { status: 500 }

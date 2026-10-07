@@ -94,36 +94,34 @@ export async function saveCounts(
     );
   }
 
-  return prisma.$transaction(async (tx) => {
-    for (const countItem of counts) {
-      const existingItem = order.items.find(
-        (i) => i.componentId === countItem.componentId
+  for (const countItem of counts) {
+    const existingItem = order.items.find(
+      (i) => i.componentId === countItem.componentId
+    );
+    if (existingItem) {
+      const serverStatus = computeItemStatus(
+        existingItem.expectedQty,
+        countItem.actualQty
       );
-      if (existingItem) {
-        const serverStatus = computeItemStatus(
-          existingItem.expectedQty,
-          countItem.actualQty
-        );
-        await tx.verificationItem.update({
-          where: { id: existingItem.id },
-          data: {
-            actualQty: countItem.actualQty,
-            status: serverStatus,
-          },
-        });
-      }
-    }
-
-    return tx.cuttingOrder.findUniqueOrThrow({
-      where: { id: order.id },
-      include: {
-        recipe: true,
-        items: {
-          include: { component: true },
-          orderBy: { component: { componentName: 'asc' } },
+      await prisma.verificationItem.update({
+        where: { id: existingItem.id },
+        data: {
+          actualQty: countItem.actualQty,
+          status: serverStatus,
         },
+      });
+    }
+  }
+
+  return prisma.cuttingOrder.findUniqueOrThrow({
+    where: { id: orderId },
+    include: {
+      recipe: true,
+      items: {
+        include: { component: true },
+        orderBy: { component: { componentName: 'asc' } },
       },
-    });
+    },
   });
 }
 
@@ -136,8 +134,8 @@ export const saveComponentCounts = saveCounts;
  * 3. Server recomputes status of every single component
  * 4. If ANY component is RED, missing, or uncounted -> throws BusinessRuleError (422) listing failures
  * 5. Server computes wastagePct
- * 6. In ONE transaction: upserts items, writes VerificationLog, updates order to VERIFIED
- * 7. Conditional update prevents double-approval race conditions
+ * 6. Conditional update prevents double-approval race conditions
+ * 7. Upserts items with verified counts and writes immutable VerificationLog
  */
 export async function approveOrder(
   session: SessionPayload,
@@ -210,85 +208,82 @@ export async function approveOrder(
 
   const serverTimestamp = new Date();
 
-  // 6 & 7. Atomic transaction with race-condition prevention
-  return prisma.$transaction(async (tx) => {
-    // Upsert items with verified counts
-    for (const comp of order.recipe.components) {
-      const expectedQty = order.targetQty * comp.piecesPerGarment;
-      const actualQty = countMap.get(comp.id) ?? 0;
-      const status = computeItemStatus(expectedQty, actualQty);
+  // 6. Conditional atomic update to prevent double-approval race conditions
+  const updateResult = await prisma.cuttingOrder.updateMany({
+    where: {
+      id: order.id,
+      status: OrderStatus.PENDING_VERIFICATION,
+    },
+    data: {
+      status: OrderStatus.VERIFIED,
+      verifiedById: session.userId,
+      verifiedAt: serverTimestamp,
+      wastagePct: wastagePct,
+    },
+  });
 
-      await tx.verificationItem.upsert({
-        where: {
-          orderId_componentId: {
-            orderId: order.id,
-            componentId: comp.id,
-          },
-        },
-        update: {
-          actualQty,
-          status,
-        },
-        create: {
+  if (updateResult.count === 0) {
+    throw new InvalidTransitionError(
+      'Order status was modified concurrently. Approval aborted.'
+    );
+  }
+
+  // 7. Upsert items with verified counts
+  for (const comp of order.recipe.components) {
+    const expectedQty = order.targetQty * comp.piecesPerGarment;
+    const actualQty = countMap.get(comp.id) ?? 0;
+    const status = computeItemStatus(expectedQty, actualQty);
+
+    await prisma.verificationItem.upsert({
+      where: {
+        orderId_componentId: {
           orderId: order.id,
           componentId: comp.id,
-          expectedQty,
-          actualQty,
-          status,
         },
-      });
-    }
-
-    // Conditional atomic update to prevent double-approval race conditions
-    const updateResult = await tx.cuttingOrder.updateMany({
-      where: {
-        id: order.id,
-        status: OrderStatus.PENDING_VERIFICATION,
       },
-      data: {
-        status: OrderStatus.VERIFIED,
-        verifiedById: session.userId,
-        verifiedAt: serverTimestamp,
-        wastagePct: wastagePct,
+      update: {
+        actualQty,
+        status,
       },
-    });
-
-    if (updateResult.count === 0) {
-      throw new InvalidTransitionError(
-        'Order status was modified concurrently. Approval aborted.'
-      );
-    }
-
-    // Write immutable VerificationLog (Identity & Timestamp from server)
-    await tx.verificationLog.create({
-      data: {
+      create: {
         orderId: order.id,
-        verifierId: session.userId,
-        decision: Decision.APPROVED,
-        wastagePct: wastagePct,
-        timestamp: serverTimestamp,
+        componentId: comp.id,
+        expectedQty,
+        actualQty,
+        status,
       },
     });
+  }
 
-    return tx.cuttingOrder.findUniqueOrThrow({
-      where: { id: order.id },
-      include: {
-        recipe: true,
-        items: {
-          include: { component: true },
-          orderBy: { component: { componentName: 'asc' } },
-        },
-        createdBy: {
-          select: { id: true, name: true, email: true },
-        },
-        verifiedBy: {
-          select: { id: true, name: true, email: true },
-        },
-        verificationLogs: {
-          orderBy: { timestamp: 'desc' },
-        },
+  // 8. Write immutable VerificationLog (Identity & Timestamp from server)
+  await prisma.verificationLog.create({
+    data: {
+      orderId: order.id,
+      verifierId: session.userId,
+      decision: Decision.APPROVED,
+      wastagePct: wastagePct,
+      timestamp: serverTimestamp,
+    },
+  });
+
+  return prisma.cuttingOrder.findUniqueOrThrow({
+    where: { id: order.id },
+    include: {
+      recipe: true,
+      items: {
+        include: { component: true },
+        orderBy: { component: { componentName: 'asc' } },
       },
-    });
+      createdBy: {
+        select: { id: true, name: true, email: true },
+      },
+      verifiedBy: {
+        select: { id: true, name: true, email: true },
+      },
+      verificationLogs: {
+        orderBy: { timestamp: 'desc' },
+      },
+    },
   });
 }
 
@@ -327,49 +322,47 @@ export async function rejectOrder(
 
   const serverTimestamp = new Date();
 
-  return prisma.$transaction(async (tx) => {
-    // Conditional atomic update
-    const updateResult = await tx.cuttingOrder.updateMany({
-      where: {
-        id: order.id,
-        status: OrderStatus.PENDING_VERIFICATION,
-      },
-      data: {
-        status: OrderStatus.REJECTED,
-        verifiedById: session.userId,
-        verifiedAt: serverTimestamp,
-      },
-    });
+  // Conditional atomic update
+  const updateResult = await prisma.cuttingOrder.updateMany({
+    where: {
+      id: order.id,
+      status: OrderStatus.PENDING_VERIFICATION,
+    },
+    data: {
+      status: OrderStatus.REJECTED,
+      verifiedById: session.userId,
+      verifiedAt: serverTimestamp,
+    },
+  });
 
-    if (updateResult.count === 0) {
-      throw new InvalidTransitionError(
-        'Order status was modified concurrently. Rejection aborted.'
-      );
-    }
+  if (updateResult.count === 0) {
+    throw new InvalidTransitionError(
+      'Order status was modified concurrently. Rejection aborted.'
+    );
+  }
 
-    // Append immutable VerificationLog
-    await tx.verificationLog.create({
-      data: {
-        orderId: order.id,
-        verifierId: session.userId,
-        decision: Decision.REJECTED,
-        rejectionNote: trimmedNote,
-        timestamp: serverTimestamp,
-      },
-    });
+  // Append immutable VerificationLog
+  await prisma.verificationLog.create({
+    data: {
+      orderId: order.id,
+      verifierId: session.userId,
+      decision: Decision.REJECTED,
+      rejectionNote: trimmedNote,
+      timestamp: serverTimestamp,
+    },
+  });
 
-    return tx.cuttingOrder.findUniqueOrThrow({
-      where: { id: order.id },
-      include: {
-        recipe: true,
-        items: {
-          include: { component: true },
-        },
-        verificationLogs: {
-          orderBy: { timestamp: 'desc' },
-        },
+  return prisma.cuttingOrder.findUniqueOrThrow({
+    where: { id: order.id },
+    include: {
+      recipe: true,
+      items: {
+        include: { component: true },
       },
-    });
+      verificationLogs: {
+        orderBy: { timestamp: 'desc' },
+      },
+    },
   });
 }
 
