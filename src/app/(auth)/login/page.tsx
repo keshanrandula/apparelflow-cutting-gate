@@ -282,7 +282,7 @@ export default function LoginPage() {
           <div className="pt-5 border-t border-slate-200 dark:border-slate-800 space-y-2.5">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                <span>⚡</span> Evaluator Role Switcher
+                <span>⚡</span> Evaluator Roles
               </span>
               <span className="text-[10px] text-orange-600 dark:text-orange-400 font-bold bg-orange-50 dark:bg-orange-950/60 px-2 py-0.5 rounded-md">
                 1-Click Audit Access

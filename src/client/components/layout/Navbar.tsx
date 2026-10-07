@@ -13,7 +13,6 @@ export const Navbar: React.FC = () => {
   const pathname = usePathname();
 
   const handleLogout = async () => {
-    showToast('Signing out...', 'info');
     await logout();
     showToast('Signed out successfully.', 'success');
   };
@@ -113,26 +112,68 @@ export const Navbar: React.FC = () => {
           <div className="flex items-center gap-3">
             <ThemeToggle />
 
-            <div className="hidden sm:flex items-center">
+            <div className="flex items-center">
               <span
-                className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-full border shadow-2xs ${currentRole.badgeColor}`}
+                className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 text-[11px] sm:text-xs font-bold rounded-full border shadow-2xs ${currentRole.badgeColor}`}
               >
                 <span className="h-2 w-2 rounded-full bg-current opacity-80" />
-                {currentRole.title}
+                <span className="truncate max-w-[110px] sm:max-w-none">{currentRole.title}</span>
               </span>
             </div>
 
             <button
               onClick={handleLogout}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-rose-700 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-rose-200 dark:hover:border-rose-800 transition shadow-xs cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-rose-700 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-rose-200 dark:hover:border-rose-800 transition shadow-xs cursor-pointer"
               title="Sign Out"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
               </svg>
-              <span>Logout</span>
+              <span className="hidden sm:inline">Logout</span>
             </button>
           </div>
+        </div>
+
+        {/* Mobile Navigation Secondary Bar */}
+        <div className="md:hidden flex items-center justify-around py-2 border-t border-slate-100 dark:border-slate-800/80">
+          {user.role === 'cutting_supervisor' && (
+            <Link
+              href="/cutting"
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                pathname === '/cutting'
+                  ? 'bg-orange-50 dark:bg-orange-950/60 text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-orange-800'
+                  : 'text-slate-600 dark:text-slate-400'
+              }`}
+            >
+              <span>✂️</span> Cutting Workspace
+            </Link>
+          )}
+
+          {user.role === 'cutting_verifier' && (
+            <Link
+              href="/verifier"
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                pathname === '/verifier' || pathname === '/verification'
+                  ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                  : 'text-slate-600 dark:text-slate-400'
+              }`}
+            >
+              <span>🛡️</span> Gatekeeper Terminal
+            </Link>
+          )}
+
+          {user.role === 'sewing_supervisor' && (
+            <Link
+              href="/sewing"
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                pathname === '/sewing'
+                  ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
+                  : 'text-slate-600 dark:text-slate-400'
+              }`}
+            >
+              <span>🧵</span> Sewing Floor
+            </Link>
+          )}
         </div>
       </div>
     </header>

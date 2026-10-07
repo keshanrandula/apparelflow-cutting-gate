@@ -13,6 +13,7 @@ export interface ToastItem {
 
 interface ToastContextType {
   showToast: (message: string, type?: ToastType, title?: string) => void;
+  clearToasts: () => void;
 }
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
@@ -20,13 +21,23 @@ const ToastContext = createContext<ToastContextType | undefined>(undefined);
 export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
+  const clearToasts = useCallback(() => {
+    setToasts([]);
+  }, []);
+
   const showToast = useCallback((message: string, type: ToastType = 'info', title?: string) => {
     const id = Math.random().toString(36).substring(2, 9);
-    setToasts((prev) => [...prev, { id, type, message, title }]);
+    setToasts((prev) => {
+      // If adding a success or error, dismiss previous info notices to prevent clutter
+      const filtered = (type === 'success' || type === 'error') 
+        ? prev.filter(t => t.type !== 'info') 
+        : prev.slice(-2); // keep at most 2 active toasts
+      return [...filtered, { id, type, message, title }];
+    });
 
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 4500);
+    }, 3500);
   }, []);
 
   const removeToast = (id: string) => {
@@ -98,7 +109,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   return (
-    <ToastContext.Provider value={{ showToast }}>
+    <ToastContext.Provider value={{ showToast, clearToasts }}>
       {children}
       <div
         className="fixed bottom-5 right-5 z-50 flex flex-col gap-2.5 max-w-sm sm:max-w-md w-full pointer-events-none px-4 sm:px-0"

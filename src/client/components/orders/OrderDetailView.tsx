@@ -7,6 +7,7 @@ import { CuttingOrder } from '../../types';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { StatusBadge, TrafficBadge } from '../ui/Badges';
+import { PatternIcon } from '../ui/PatternIcon';
 import { useToast } from '../ui/Toast';
 
 export const OrderDetailView: React.FC<{ orderId: string }> = ({ orderId }) => {
@@ -153,16 +154,11 @@ export const OrderDetailView: React.FC<{ orderId: string }> = ({ orderId }) => {
                 <tr key={item.id} className="hover:bg-slate-50/80 transition">
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 p-1 flex-shrink-0 flex items-center justify-center overflow-hidden">
-                        <img
-                          src={item.component.imageUrl || '/images/components/default.svg'}
-                          alt={item.component.componentName}
-                          className="w-full h-full object-contain"
-                          onError={(e) => {
-                            (e.currentTarget as HTMLImageElement).src = '/images/components/default.svg';
-                          }}
-                        />
-                      </div>
+                      <PatternIcon
+                        name={item.component.componentName}
+                        imageUrl={item.component.imageUrl}
+                        size="sm"
+                      />
                       <span className="font-bold text-slate-900">
                         {item.component.componentName}
                       </span>

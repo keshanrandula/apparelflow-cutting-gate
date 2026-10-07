@@ -6,6 +6,7 @@ import { CuttingOrder, ItemStatus } from '../../types';
 import { Card, Modal } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { StatusBadge, TrafficBadge } from '../ui/Badges';
+import { PatternIcon } from '../ui/PatternIcon';
 import { useToast } from '../ui/Toast';
 
 export const VerificationDashboard: React.FC = () => {
@@ -527,16 +528,11 @@ export const VerificationDashboard: React.FC = () => {
                           >
                             <td className="py-3.5 px-4">
                               <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 p-1 flex-shrink-0 flex items-center justify-center overflow-hidden shadow-xs">
-                                  <img
-                                    src={item.component.imageUrl || '/images/components/default.svg'}
-                                    alt={item.component.componentName}
-                                    className="w-full h-full object-contain"
-                                    onError={(e) => {
-                                      (e.currentTarget as HTMLImageElement).src = '/images/components/default.svg';
-                                    }}
-                                  />
-                                </div>
+                                <PatternIcon
+                                  name={item.component.componentName}
+                                  imageUrl={item.component.imageUrl}
+                                  size="md"
+                                />
                                 <div>
                                   <span className="font-extrabold text-slate-900 block text-xs">
                                     {item.component.componentName}

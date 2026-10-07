@@ -98,7 +98,9 @@ The database seed includes 3 pre-configured user accounts covering the factory p
 | **QC Gatekeeper** | `verifier@apparelflow.com` | `Verifier@123` | QC Gatekeeper |
 | **Sewing Supervisor** | `sewing@apparelflow.com` | `Sewing@123` | Sewing Supervisor |
 
-*(Note: The login page includes a 1-click Quick Login role switcher for instant evaluation).*
+*(Note: The login terminal includes 1-click **Evaluator Roles** quick fill for evaluation and auditing).*
+
+> **Security Note:** Demo credentials are generated strictly via `prisma/seed.ts` for local evaluation. Production environments disable demo seeds and enforce encrypted admin-provisioned access.
 
 ---
 
