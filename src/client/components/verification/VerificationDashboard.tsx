@@ -238,10 +238,7 @@ export const VerificationDashboard: React.FC = () => {
         };
       });
 
-      // 1. Save counts first
-      await saveCounts(selectedOrder.id, payload);
-
-      // 2. Perform strict server-side gatekeeper approval with counts
+      // Perform strict server-side gatekeeper approval with counts in one atomic transaction
       await verifyOrder(selectedOrder.id, 'APPROVED', undefined, payload);
       showToast(`Order ${selectedOrder.orderNo} successfully VERIFIED and released to Sewing!`, 'success');
       await refreshOrders();
